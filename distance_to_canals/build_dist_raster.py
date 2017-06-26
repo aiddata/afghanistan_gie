@@ -2,6 +2,7 @@
 
 
 import os
+import tarfile
 
 from distancerasters import build_distance_array, rasterize, export_raster
 
@@ -30,6 +31,13 @@ binary_raster_path = os.path.expanduser(
 export_raster(rv_array, affine, binary_raster_path)
 
 
+def make_tarfile(dst, src):
+    with tarfile.open(dst, "w:gz") as tar:
+        tar.add(src, arcname=os.path.basename(src))
+
+
+make_tarfile(dst=binary_raster_path[:-3] + "tar.gz" , src=binary_raster_path)
+
 # -----------------------------------------------------------------------------
 
 
@@ -44,4 +52,5 @@ dist = build_distance_array(rv_array, affine=affine,
                             conditional=raster_conditional)
 
 
+make_tarfile(dst=distance_raster_path[:-3] + "tar.gz" , src=distance_raster_path)
 
