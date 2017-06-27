@@ -91,14 +91,23 @@ project_data_path = os.path.expanduser(
 project_data = pd.read_csv(project_data_path, quotechar='\"',
                            na_values='', keep_default_na=False,
                            encoding='utf-8')
-project_data = project_data[["OFWM Project ID", "Started Date"]]
-project_data.columns = ['project_id', 'start_date']
+project_data = project_data[["OFWM Project ID", "Actual end date"]]
+project_data.columns = ['project_id', 'actual_end_date']
 
-project_data['start_iso_date'] = project_data.start_date.apply(
-    lambda z: datetime.strptime(z, '%b/%d/%Y').strftime('%Y-%m-%d') )
+
+project_data.loc[project_data['actual_end_date'].isnull()] = "Jan/01/9999"
+
+def prep_date(datestr):
+    delim = datestr[3]
+    datestr = "/".join(datestr.split(delim))
+    return datetime.strptime(datestr, "%b/%d/%Y").strftime('%Y-%m-%d')
+
+
+project_data['actual_end_date_iso'] = project_data['actual_end_date'].apply(
+    lambda z: prep_date(z))
 
 gdf = gdf.merge(
-    project_data[['project_id', 'start_iso_date']], on='project_id')
+    project_data[['project_id', 'actual_end_date_iso']], on='project_id')
 
 grp = gdf.groupby(['unique'], as_index=False).aggregate(
     lambda x: '|'.join(x))
@@ -107,7 +116,7 @@ grp['project_list'] = grp['project_id']
 
 gdf = gdf.merge(grp[['unique', 'project_list']], on='unique')
 
-out_gdf = gdf.sort_values(by='start_iso_date', ascending=True).groupby('unique', as_index=False).first()
+out_gdf = gdf.sort_values(by='actual_end_date_iso', ascending=True).groupby('unique', as_index=False).first()
 out_gdf = gpd.GeoDataFrame(out_gdf)
 
 
