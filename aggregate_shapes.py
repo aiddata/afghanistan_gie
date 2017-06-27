@@ -29,6 +29,7 @@ for path in canal_path_list:
     with fiona.open(path, 'r') as feat_src:
         for feature in feat_src:
             feature['properties']['project_id'] = project_id
+            del feature['properties']['id']
             all_canal_features.append(feature)
 
 canal_geo = {
@@ -50,6 +51,7 @@ for path in area_path_list:
     with fiona.open(path, 'r') as feat_src:
         for feature in feat_src:
             feature['properties']['project_id'] = project_id
+            del feature['properties']['id']
             all_area_features.append(feature)
 
 
@@ -64,4 +66,8 @@ area_path = os.path.expanduser(
 area_file = open(area_path, "w")
 json.dump(area_geo, area_file)
 area_file.close()
+
+
+
+
 
