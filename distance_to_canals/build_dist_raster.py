@@ -36,7 +36,7 @@ def make_tarfile(dst, src):
         tar.add(src, arcname=os.path.basename(src))
 
 
-make_tarfile(dst=binary_raster_path[:-3] + "tar.gz" , src=binary_raster_path)
+make_tarfile(dst=binary_raster_path + ".tar.gz" , src=binary_raster_path)
 
 # -----------------------------------------------------------------------------
 
@@ -52,5 +52,5 @@ dist = build_distance_array(rv_array, affine=affine,
                             conditional=raster_conditional)
 
 
-make_tarfile(dst=distance_raster_path[:-3] + "tar.gz" , src=distance_raster_path)
+make_tarfile(dst=distance_raster_path + ".tar.gz" , src=distance_raster_path)
 
