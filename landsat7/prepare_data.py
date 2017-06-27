@@ -442,7 +442,7 @@ def build_mosaic(index, data):
     ]
 
     mosaic_output_path = os.path.join(
-        project_dir, "season_mosaics", "{0}_{1}.tif".format(data['year'], data['season']))
+        project_dir, "season_mosaics", data['season'], "{0}_{1}.tif".format(data['year'], data['season']))
 
     mosaic_scenes = [rasterio.open(path) for path in season_scene_files]
     mosaic_profile = mosaic_scenes[0].profile
