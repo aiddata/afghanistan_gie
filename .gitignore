@@ -1,2 +1,3 @@
 raster/*.tif
+raster/distance*
 canal_data/*_grid.geojson
