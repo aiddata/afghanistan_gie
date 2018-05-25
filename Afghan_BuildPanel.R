@@ -19,11 +19,11 @@ setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
 # --------------
 
 #-----
-## Read in points, outcome, and covariate data
+## Read in points data
 
 #point id, and associated project id and end date
 #from geo-referencing done by students to digitize pdf maps from USAID Afghanistan, uses cells that fill command areas
-#cells represented as points because they are so small
+#cells represented as points because they are so small and easier for GeoQuery extract
 
 #use rgdal line to read in as a shapefile
 #afcells <- rgdal::readOGR("/Users/rbtrichler/Box Sync/afghanistan_gie/inputData/canal_point_grid.geojson","OGRGeoJSON")
@@ -39,7 +39,7 @@ st_geometry(afcells)<-NULL
 afcells_geo <- st_set_geometry(as.data.frame(afcells$reu_id),afcells_geo)
 
 #-------
-## Read in and rename ndvi outcome data file
+## Read in and rename ndvi outcome data file, merge with cells
 
 #ndvi data extract from GeoQuery, join to points by field "unique"
 afmerge<-read.csv("inputData/merge_canal_point_grid.csv")
@@ -67,7 +67,7 @@ afmerge <- afmerge[,-grep("project_",colnames(afmerge))]
 afmerge <- afmerge[,-grep("end_date",colnames(afmerge))]
 
 #merge with afcells
-afdata<-merge(afmerge, afcells, by="unique")
+afwide<-merge(afmerge, afcells, by="unique")
 
 #-----
 ## Read in covariate data
@@ -75,23 +75,27 @@ afcovar<-read.csv("inputData/merge_canal_point_grid_other.csv")
 afcovar <- afcovar[,-grep("project_",colnames(afcovar))]
 afcovar <- afcovar[,-grep("end_date",colnames(afcovar))]
 
-#join files
+#merge covar data
 
-afdata1<-merge(afdata, afcovar, by="unique")
-afdata<-afdata1
+afwide1<-merge(afwide, afcovar, by="unique")
+afwide<-afwide1
 
-#--------
-## Test creation of pre-trend
+##-----------------------
+# Create NDVI pre-trends
+## ----------------------
+
+## Create panel dataset for 2006-2012 only
 #subset data to ndvi, id, end date, distance to canal
-ndvi_pre <- afdata[,(1:51)]
+ndvi_pre <- afwide[,(1:51)]
 #write.csv(ndvi_pre,"ndvi_pre.csv")
 #create panel dataset
 #order by name/date to allow reshape to work properly
 ndvi_pre_reshape <- ndvi_pre[,order(names(ndvi_pre))]
 #cut out years 2013-2016 for ndvi
 ndvi_pre_reshape<-ndvi_pre_reshape[,-(32:47)]
-# cut out most rows to test (delete when done testing)
-ndvi_pre_reshape<-ndvi_pre_reshape[which(ndvi_pre_reshape$reu_id<5000),]
+
+# create subset for testing purposes
+#ndvi_pre_reshape<-ndvi_pre_reshape[which(ndvi_pre_reshape$reu_id<5000),]
 
 #Identify variables where values will change yearly in panel dataset
 ndvi_pre<-grep("ndvi_",names(ndvi_pre_reshape))
@@ -100,44 +104,37 @@ ndvi_pre_panel<-reshape(ndvi_pre_reshape, varying=pre_reshape_vars,direction="lo
 
 #write.csv (ndvi_pre_panel,"ndvi_pre_panel.csv")
 
-
-##SCRATCH#
-#test creation of pre-trend
+## Create pre-trend using panel dataset
 
 obj <- ndvi_pre_panel %>% split(.$reu_id) %>% lapply (lm, formula=formula(ndvi~qtr))
 
-#this gets out qtr coefficient but needs to be transposed
-#gives id field! though changes it to row number, so just need to turn that into a variable
 obj_coefficients <- as.data.frame(t(lapply(obj, function(x) as.numeric(x[1]$coefficients[2]))))
 obj_coefficients1<-as.data.frame(t(obj_coefficients))
 obj_coefficients1$rownumber <- as.numeric(rownames(obj_coefficients1))
 obj_coeff<-obj_coefficients1
-names(obj_coeff)[names(obj_coeff)=="V1"]="ndvipretrend"
+names(obj_coeff)[names(obj_coeff)=="V1"]="ndvipre_0612"
+names(obj_coeff)[names(obj_coeff)=="rownumber"]="reu_id"
+obj_coeff$ndvipre_0612<-as.numeric(obj_coeff$ndvipre_0612)
 
+# ##Double check pre-trend creation -- all three below should be the same
+# 
+# #this gives you value from obj_coeff for any reu_id
+# S=obj_coeff$rownumber==19
+# obj_coeff[S,]$ndvipretrend
+# #this gives you the value from obj 
+# obj$`19`$coefficients
+# #this runs the same regression from the original ndvi_pre_panel dataset
+# ndvi_pre_panel_19<-ndvi_pre_panel[ndvi_pre_panel$reu_id==19,]
+# lm(ndvi~qtr, data=ndvi_pre_panel_19)
+#   
 
-obj_coefficients <- as.data.frame(lapply(obj, function(x) as.numeric(x[1]$coefficients[2])))
+## Merge pre-trends back into wide-form dataset
 
+afwide2<-merge(afdata, obj_coeff, by="reu_id")
+afwide<-afwide2
 
-#these won't work if there is any missing data, even if it still generates a slope because there's an extra field
-thing<-data.frame(matrix(unlist(obj),nrow=5,byrow=T))
+write.csv (afwide,"afwide.csv")
 
-thing2<-data.frame(t(sapply(obj, c)))
-
-thing <- ldply(obj, data.frame)
-thing <-do.call("rbind", obj)
-
-#do column bind at the end to add in reu_id from ndvi_pre_panel (sorted before this step)
-#test out how it functions (if I sort differently, what object identifiers does it give me?)
-
-mtcars %>% split(.$cyl) %>% lapply(lm, formula = formula(mpg ~ wt))
-df <- ldply(listOfDataFrames, data.frame)
-
-ndvipre.ls  <- split(ndvi_pre_panel, ndvi_pre_panel$reu_id)
-fits.ls <- lapply(ndvipre.ls, function(s) lm(ndvi ~ qtr, data = s) )
-
-
-
-  
 #---------
 ## Prep Panel Build 
 # ---------
@@ -149,7 +146,7 @@ fits.ls <- lapply(ndvipre.ls, function(s) lm(ndvi ~ qtr, data = s) )
 # ----------
 
 #Order variables by name/time to allow reshape to work properly
-af_reshape<-afdata[,order(names(afdata))]
+af_reshape<-afdata[,order(names(afwide))]
 
 #Identify variables where values will change yearly in panel dataset
 ndvi<-grep("ndvi_",names(af_reshape))
