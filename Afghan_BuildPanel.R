@@ -33,10 +33,53 @@ afcells<-st_read(afcells)
 #id field is weird, so assign reu_id that is unique, continuous, and numeric: 1 to 221,985
 # the field "unique" also provides unique and numeric id, but is too long 
 afcells$reu_id<-as.numeric(afcells$id)
-#extract geometry and convert geometry dataset to dataframe
+
+# DO THIS AGAIN IF CELL LOCATION DATA CHANGES
+# ## Subset cell level dataset so that we have shapefile of one point with coordinates for each project
+# # will use this to join in province that each project takes place in
+# 
+# afproj <- do.call(rbind, by(afcells, list(afcells$project_id),
+#                             FUN=function(x) head(x,1)))
+# 
+# st_write(afproj, "afproj_geojson",layer="afproj", driver="GeoJSON")
+# #then use file above to manually join one point per project with admin1 province information in QGIS
+
+#extract geometry from full datset and convert geometry dataset to dataframe
 afcells_geo<-st_geometry(afcells)
 st_geometry(afcells)<-NULL
 afcells_geo <- st_set_geometry(as.data.frame(afcells$reu_id),afcells_geo)
+
+
+
+#-----
+## Merge in province level data
+# In QGIS, manually joined afproj (one point per project) with province shapefil
+# This gives province for each project location which will help to evaluate growing seasons by province, etc
+
+#read in shapefile with province information created with manual join in QGIS
+afproj_province <- "ProcessedSpatialData/afproj_province.shp"
+afproj_province <- st_read(afproj_province)
+
+# remove geometry
+afproj_province_geo <-st_geometry(afproj_province)
+st_geometry(afproj_province)<-NULL
+afproj_province_geo<- st_set_geometry(as.data.frame(afproj_province$reu_id),afproj_province_geo)
+# remove unnecessary columns, just keeping project level vars and province name
+afproj_province<-afproj_province[,c(2:3,10)]
+
+# merge with afcells
+afcells1<- merge(afcells, afproj_province, by="project_id")
+afcells<-afcells1
+#rename province name columns
+names(afcells)[names(afcells) == "NAME_1"] = "prov_name"
+#manual check of project end dates, then drop "actual end"
+afcells<-afcells[,-(7)]
+#create numeric var for province name
+afcells$prov_id<-as.factor(afcells$prov_name)
+afcells$prov_id <- unclass(afcells$prov_id)
+# # double check creation of province id
+# table(afcells$prov_id)
+# table(afcells$prov_name)
 
 #-------
 ## Read in and rename ndvi outcome data file, merge with cells
@@ -81,12 +124,12 @@ afwide1<-merge(afwide, afcovar, by="unique")
 afwide<-afwide1
 
 ##-----------------------
-# Create NDVI pre-trends
+# Create NDVI pre-panel
 ## ----------------------
 
 ## Create panel dataset for 2006-2012 only
 #subset data to ndvi, id, end date, distance to canal
-ndvi_pre <- afwide[,(1:51)]
+ndvi_pre <- afwide[,(1:53)]
 #write.csv(ndvi_pre,"ndvi_pre.csv")
 #create panel dataset
 #order by name/date to allow reshape to work properly
@@ -102,19 +145,26 @@ ndvi_pre<-grep("ndvi_",names(ndvi_pre_reshape))
 pre_reshape_vars<-c(ndvi_pre)
 ndvi_pre_panel<-reshape(ndvi_pre_reshape, varying=pre_reshape_vars,direction="long",idvar="reu_id",sep="_",timevar="qtr")
 
-#write.csv (ndvi_pre_panel,"ndvi_pre_panel.csv")
+#-------------------
+# Add NDVI pre-trends
+# ------------------
 
-## Create pre-trend using panel dataset
+# ***** REDO THIS SECTION IF CELLS OR NDVI DATA CHANGES ********
+# ***** OTHERWISE, MERGES IN PRE-TRENDS PREVIOUSLY CREATED *****
 
-obj <- ndvi_pre_panel %>% split(.$reu_id) %>% lapply (lm, formula=formula(ndvi~qtr))
-
-obj_coefficients <- as.data.frame(t(lapply(obj, function(x) as.numeric(x[1]$coefficients[2]))))
-obj_coefficients1<-as.data.frame(t(obj_coefficients))
-obj_coefficients1$rownumber <- as.numeric(rownames(obj_coefficients1))
-obj_coeff<-obj_coefficients1
-names(obj_coeff)[names(obj_coeff)=="V1"]="ndvipre_0612"
-names(obj_coeff)[names(obj_coeff)=="rownumber"]="reu_id"
-obj_coeff$ndvipre_0612<-as.numeric(obj_coeff$ndvipre_0612)
+# ## Create pre-trend using panel dataset
+# 
+# obj <- ndvi_pre_panel %>% split(.$reu_id) %>% lapply (lm, formula=formula(ndvi~qtr))
+# 
+# obj_coefficients <- as.data.frame(t(lapply(obj, function(x) as.numeric(x[1]$coefficients[2]))))
+# obj_coefficients1<-as.data.frame(t(obj_coefficients))
+# obj_coefficients1$rownumber <- as.numeric(rownames(obj_coefficients1))
+# obj_coeff<-obj_coefficients1
+# names(obj_coeff)[names(obj_coeff)=="V1"]="ndvipre_0612"
+# names(obj_coeff)[names(obj_coeff)=="rownumber"]="reu_id"
+# obj_coeff$ndvipre_0612<-as.numeric(obj_coeff$ndvipre_0612)
+# 
+# #write.csv(obj_coeff,"ndvipretrends_0612.csv")
 
 # ##Double check pre-trend creation -- all three below should be the same
 # 
@@ -126,11 +176,21 @@ obj_coeff$ndvipre_0612<-as.numeric(obj_coeff$ndvipre_0612)
 # #this runs the same regression from the original ndvi_pre_panel dataset
 # ndvi_pre_panel_19<-ndvi_pre_panel[ndvi_pre_panel$reu_id==19,]
 # lm(ndvi~qtr, data=ndvi_pre_panel_19)
-#   
+ 
+
+## Merge pre-trends into ndvi_pre_panel
+# Read in file with pretrends created previously
+obj_coeff <- read.csv("ndvipretrends_0612.csv")
+obj_coeff<-obj_coeff[,2:3]
+#Merge pre-trends into ndvi_pre_panel
+ndvi_pre_panel1<-merge(ndvi_pre_panel, obj_coeff, by="reu_id")
+ndvi_pre_panel<-ndvi_pre_panel1
+
+write.csv (ndvi_pre_panel,"ndvi_pre_panel.csv")
 
 ## Merge pre-trends back into wide-form dataset
 
-afwide2<-merge(afdata, obj_coeff, by="reu_id")
+afwide2<-merge(afwide, obj_coeff, by="reu_id")
 afwide<-afwide2
 
 write.csv (afwide,"afwide.csv")
@@ -175,5 +235,13 @@ plot(prepaneltest, type="l")  # original series
 plot(ts.sa, type="l")  # seasonal adjusted
 seasonplot(ts.sa, 12, col=rainbow(12), year.labels=TRUE, main="Seasonal plot: Airpassengers") # seasonal frequency set as 12 for monthly data.
 
+#summary statistics by group to examine crop growth seasonality
 
+province<- group_by(afwide, prov_name)
+summarize(province, count=n(), ndvi20091=mean(ndvi_20091, na.rm=T), max=max(ndvi_20091, na.rm=T))
+
+prepanel_bamyan <- ndvi_pre_panel[ndvi_pre_panel$prov_id==3,]
+bamyan<-group_by(prepanel_bamyan, qtr)
+bamyanndvi <- summarize(bamyan, mean=mean(ndvi, na.rm=T), sd=sd(ndvi, na.rm=T),median=median(ndvi, na.rm=T),
+                        max=max(ndvi, na.rm=T), IQR=IQR(ndvi, na.rm=T))
 
