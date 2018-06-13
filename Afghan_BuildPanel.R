@@ -145,6 +145,26 @@ ndvi_pre<-grep("ndvi_",names(ndvi_pre_reshape))
 pre_reshape_vars<-c(ndvi_pre)
 ndvi_pre_panel<-reshape(ndvi_pre_reshape, varying=pre_reshape_vars,direction="long",idvar="reu_id",sep="_",timevar="qtr")
 
+
+# -------------
+## Check that variables match between input, afwide, and panel dataset
+# summary stats for all three sources should match
+
+# info from input data, afmerge dataset
+afmerge_sub<- afmerge[which(afmerge$distance_to_canal.na<1),]
+summary(afmerge_sub$ndvi_20091)
+# number of obs should be 2338
+
+#info from cross-section dataset, afwide
+# number of obs and summary info should match
+afwide_sub<-afwide[which(afwide$distance_to_canal.na<1),]
+summary(afwide_sub$ndvi_20091)
+
+# info from ndvi_pre_panel
+ndvipre_sub<-ndvi_pre_panel[which(ndvi_pre_panel$distance_to_canal.na<1 & ndvi_pre_panel$qtr=="20091"),]
+summary(ndvipre_sub$ndvi)
+
+
 #-------------------
 # Add NDVI pre-trends
 # ------------------
@@ -195,8 +215,10 @@ afwide<-afwide2
 
 write.csv (afwide,"afwide.csv")
 
+
+
 #---------
-## Prep Panel Build 
+## Prep Full Panel Build 
 # ---------
 
 
