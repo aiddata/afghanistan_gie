@@ -55,15 +55,63 @@ scatterplot = plot(ndvi_pre_panel$qtrndvi, ndvi_pre_panel$ndvi, main="NDVI by Qu
 ggplot(ndvi_pre_panel,aes(x=as.factor(qtr),y=ndvi))+
   geom_boxplot(fill="slateblue",alpha=.2)
 
+#GRAPH 6
+ggplot(ndvi_pre_panel,aes(x=as.factor(quarter),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+#GRAPH 7
+ggplot(ndvi_pre_panel,aes(x=as.factor(quarter),y=ndvipre_0612))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
 ##
 #GRAPH 5
 #scatterplot with new variable ndvipre_0612
 plot(ndvi_pre_panel$quarteronly, ndvi_pre_panel$ndvipre_0612, main="NDVI Pretrends", xlab="Quarter Cell Treated", ylab="NDVI Pretrends", pch=19)
 
-##Work in progress
-#provinces line graph
-plot(ndvi_pre_panel$qtr, ndvi_pre_panel$ndvi,ndvi_pre_panel$qtrtrt,type = "l",col = "red", xlab = "qtr", ylab = "ndvi", 
-     main = "NDVI by Province")
+##Province Box Plots
+#provinces line graph test
+ggplot(ndvi_pre_panel, aes(x=qtr, y=ndvi,linetype=factor(prov_id)))
+
+##one for each province, 1-12
+ggplot(subset(ndvi_pre_panel, prov_id==1),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==2),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==3),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==4),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==5),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==6),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==7),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==8),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==9),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==10),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==11),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+ggplot(subset(ndvi_pre_panel, prov_id==12),aes(x=as.factor(qtr),y=ndvi))+
+  geom_boxplot(fill="slateblue",alpha=.2)
+
+
+
+ggplot(ndvi_pre_panel,aes(x=as.factor(qtr),y=ndvi), linetype=factor(prov_id))+
+  geom_boxplot(fill="slateblue",alpha=.2)
 
 lines(t, type = "o", col = "blue")
 lines(t, type = "o", col = "green")
