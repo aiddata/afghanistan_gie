@@ -123,6 +123,26 @@ afcovar <- afcovar[,-grep("end_date",colnames(afcovar))]
 afwide1<-merge(afwide, afcovar, by="unique")
 afwide<-afwide1
 
+# --------------
+#scratch
+
+# GeoQuery Extract #2 
+# Read in extract that Miranda performed
+# temp data
+# trying to change monthly mean, min, max to quarterly
+
+# read in extract file
+aftemp<-read.csv("inputData/merge_afg_GIE.csv")
+
+# keep slope, elevation, dist to water and roads, travel time ("modis_lst_..."), temp, id info
+aftemp<-aftemp[,c(1:14,288:683,786:789)]
+
+
+
+# end scratch
+# --------------------------
+
+
 ##-----------------------
 # Create NDVI pre-panel
 ## ----------------------
