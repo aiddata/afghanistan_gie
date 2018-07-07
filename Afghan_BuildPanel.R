@@ -52,31 +52,37 @@ afcells_geo <- st_set_geometry(as.data.frame(afcells$reu_id),afcells_geo)
 
 
 #-----
-## Merge in province level data
-# In QGIS, manually joined afproj (one point per project) with province shapefil
-# This gives province for each project location which will help to evaluate growing seasons by province, etc
+## Merge in district level data
+# In QGIS, manually joined afproj (one point per project) with district (and province) shapefile
+# This gives district and province for each project location 
+# will help to evaluate growing seasons by province, allow for district-level clustering
 
 #read in shapefile with province information created with manual join in QGIS
-afproj_province <- "ProcessedSpatialData/afproj_province.shp"
-afproj_province <- st_read(afproj_province)
+afproj_district <- "ProcessedSpatialData/afproj_district.shp"
+afproj_district <- st_read(afproj_district)
 
 # remove geometry
-afproj_province_geo <-st_geometry(afproj_province)
-st_geometry(afproj_province)<-NULL
-afproj_province_geo<- st_set_geometry(as.data.frame(afproj_province$reu_id),afproj_province_geo)
+afproj_district_geo <-st_geometry(afproj_district)
+st_geometry(afproj_district)<-NULL
+afproj_district_geo<- st_set_geometry(as.data.frame(afproj_district$reu_id),afproj_district_geo)
 # remove unnecessary columns, just keeping project level vars and province name
-afproj_province<-afproj_province[,c(2:3,10)]
+afproj_district<-afproj_district[,c(2:3,10,13)]
 
 # merge with afcells
-afcells1<- merge(afcells, afproj_province, by="project_id")
+afcells1<- merge(afcells, afproj_district, by="project_id")
 afcells<-afcells1
-#rename province name columns
+#rename district/province name columns
 names(afcells)[names(afcells) == "NAME_1"] = "prov_name"
-#manual check of project end dates, then drop "actual end"
+names(afcells)[names(afcells) == "NAME_2"] = "dist_name"
+#do a manual/visual check of project end dates, then drop "actual end"
 afcells<-afcells[,-(7)]
-#create numeric var for province name
+#create numeric var for province and district
 afcells$prov_id<-as.factor(afcells$prov_name)
 afcells$prov_id <- unclass(afcells$prov_id)
+
+afcells$dist_id<-as.factor(afcells$dist_name)
+afcells$dist_id<-unclass(afcells$dist_id)
+
 # # double check creation of province id
 # table(afcells$prov_id)
 # table(afcells$prov_name)
@@ -137,6 +143,32 @@ aftemp<-read.csv("inputData/merge_afg_GIE.csv")
 # keep slope, elevation, dist to water and roads, travel time ("modis_lst_..."), temp, id info
 aftemp<-aftemp[,c(1:14,288:683,786:789)]
 
+#rename temp variable
+colnames(aftemp) <- gsub("modis_lst_day_monthly.","temp_",colnames(aftemp),fixed=TRUE)
+colnames(aftemp) <- sub("\\.max", "max_\\",colnames(aftemp),fixed=TRUE)
+
+
+txt <- c("arm","foot","lefroo", "bafoobar")
+if(any(i <- grep("foo",txt)))
+
+type<-c("min","mean","max")
+for (i in)
+
+
+#create quarterly min variable
+
+year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
+
+for (i in year)
+{
+  aftemp[paste0("modis_lst_day_monthly.")]
+}
+
+for(i in 1:8)
+{
+  x_merged[paste0("date_", i)][is.na(x_merged[paste0("date_", i)]) & 
+                                 !is.na(x_merged[paste0("road_", i)])] <- paste0("9999-01-0", i)
+}
 
 
 # end scratch
@@ -190,7 +222,7 @@ summary(ndvipre_sub$ndvi)
 # ------------------
 
 # ***** REDO THIS SECTION IF CELLS OR NDVI DATA CHANGES ********
-# ***** OTHERWISE, MERGES IN PRE-TRENDS PREVIOUSLY CREATED *****
+# ***** OTHERWISE, MERGES IN PRE-TRENDS PREVIOUSLY CREATED because it takes forever *****
 
 # ## Create pre-trend using panel dataset
 # 
