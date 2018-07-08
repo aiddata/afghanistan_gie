@@ -254,18 +254,19 @@ summary(ndvipre_sub$ndvi)
 # Read in file with pretrends created previously
 obj_coeff <- read.csv("ndvipretrends_0612.csv")
 obj_coeff<-obj_coeff[,2:3]
+
 #Merge pre-trends into ndvi_pre_panel
 ndvi_pre_panel1<-merge(ndvi_pre_panel, obj_coeff, by="reu_id")
 ndvi_pre_panel<-ndvi_pre_panel1
 
-write.csv (ndvi_pre_panel,"ndvi_pre_panel.csv")
+#write.csv (ndvi_pre_panel,"ndvi_pre_panel.csv")
 
 ## Merge pre-trends back into wide-form dataset
 
 afwide2<-merge(afwide, obj_coeff, by="reu_id")
 afwide<-afwide2
 
-write.csv (afwide,"afwide.csv")
+#write.csv (afwide,"afwide.csv")
 
 
 
@@ -273,20 +274,57 @@ write.csv (afwide,"afwide.csv")
 ## Prep Full Panel Build 
 # ---------
 
+#change actual_end_date_iso to separate day, month, year columns, then create quarter from months
 
+afwide$end_year<-as.numeric(format(afwide$actual_end_date_iso, format="%Y"))
+afwide$end_month<-as.numeric(format(afwide$actual_end_date_iso, format="%m"))
+afwide$end_day<-as.numeric(format(afwide$actual_end_date_iso, format="%d"))
+
+afwide$end_quarter<- 1
+afwide$end_quarter[afwide$end_month>2 & afwide$end_month<6]<-2
+afwide$end_quarter[afwide$end_month>5 & afwide$end_month<9]<-3
+afwide$end_quarter[afwide$end_month>8 & afwide$end_month<12]<-4
+#check
+dec<-afwide[afwide$end_month==12,]
+#end_quarter should only have value=1
+table(dec$end_quarter)
+table(dec$actual_end_date_iso)
+
+#drop out vars we don't want to keep
+afwide3<-afwide[,-grep("temp",colnames(afwide))]
+afwide3<-afwide3[,-grep("precip",colnames(afwide3))]
+
+afwide<-afwide3
 
 # ----------
 ## Build Panel 
 # ----------
 
 #Order variables by name/time to allow reshape to work properly
-af_reshape<-afdata[,order(names(afwide))]
+af_reshape<-afwide[,order(names(afwide))]
 
 #Identify variables where values will change yearly in panel dataset
 ndvi<-grep("ndvi_",names(af_reshape))
 
 all_reshape <- c(ndvi)
 af_panel <- reshape(af_reshape, varying=all_reshape, direction="long",idvar="unique",sep="_",timevar="qtr")
+
+write.csv(af_panel,"af_panel.csv")
+
+
+# ----------------
+## Add Variables to Panel
+# ----------------
+
+#create dec 2012 baseline ndvi measure
+#create temp and precip pre-trends
+
+
+## create treatment var
+
+
+# create peak growing season var
+
 
 
 
