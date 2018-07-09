@@ -9,6 +9,7 @@ library(devtools)
 library(maptools)
 library(rgdal)
 library(forecast)
+library(tidyr)
 
 
 #set the working directory to where the files are stored - !CHANGE THIS TO YOUR OWN DIRECTORY!
@@ -274,7 +275,7 @@ afwide<-afwide2
 ## Prep Full Panel Build 
 # ---------
 
-#change actual_end_date_iso to separate day, month, year columns, then create quarter from months
+##change actual_end_date_iso to separate day, month, year columns, then create quarter from months
 
 afwide$end_year<-as.numeric(format(afwide$actual_end_date_iso, format="%Y"))
 afwide$end_month<-as.numeric(format(afwide$actual_end_date_iso, format="%m"))
@@ -284,24 +285,42 @@ afwide$end_quarter<- 1
 afwide$end_quarter[afwide$end_month>2 & afwide$end_month<6]<-2
 afwide$end_quarter[afwide$end_month>5 & afwide$end_month<9]<-3
 afwide$end_quarter[afwide$end_month>8 & afwide$end_month<12]<-4
-#check
-dec<-afwide[afwide$end_month==12,]
-#end_quarter should only have value=1
-table(dec$end_quarter)
-table(dec$actual_end_date_iso)
 
-#drop out vars we don't want to keep
+#create year + quarter variable
+#create year var that is end_year plus 1 if end_month=12
+#because 20141 is dec 2013, jan 2014, feb 2014
+afwide$end_yearadj <- as.numeric(afwide$end_year)
+afwide$yearadj<-0
+afwide$yearadj[afwide$end_month==12]<-1
+afwide$end_yearadj<-afwide$end_year + afwide$yearadj
+afwide$end_yearqtr <- as.numeric(paste(afwide$end_yearadj,afwide$end_quarter,sep=""))
+table(afwide$end_year)
+table(afwide$end_yearadj)
+
+# # check
+# dec<-afwide[afwide$end_month==12,]
+# #end_quarter should only have value=1
+# table(dec$end_quarter)
+# table(dec$actual_end_date_iso)
+# table(dec$end_yearqtr)
+
+## create peak growing season identifier
+table(afwide$prov_name,afwide$prov_id)
+afwide$peakqtr<-2
+afwide$peakqtr[afwide$prov_id==3|afwide$prov_id==11]<-3
+table(afwide$prov_id,afwide$peakqtr)
+
+##drop out vars we don't want to keep
 afwide3<-afwide[,-grep("temp",colnames(afwide))]
 afwide3<-afwide3[,-grep("precip",colnames(afwide3))]
 
-afwide<-afwide3
 
 # ----------
 ## Build Panel 
 # ----------
 
 #Order variables by name/time to allow reshape to work properly
-af_reshape<-afwide[,order(names(afwide))]
+af_reshape<-afwide3[,order(names(afwide3))]
 
 #Identify variables where values will change yearly in panel dataset
 ndvi<-grep("ndvi_",names(af_reshape))
@@ -309,7 +328,7 @@ ndvi<-grep("ndvi_",names(af_reshape))
 all_reshape <- c(ndvi)
 af_panel <- reshape(af_reshape, varying=all_reshape, direction="long",idvar="unique",sep="_",timevar="qtr")
 
-write.csv(af_panel,"af_panel.csv")
+write.csv(af_panel,"ProcessedData/af_panel.csv")
 
 
 # ----------------
@@ -319,14 +338,38 @@ write.csv(af_panel,"af_panel.csv")
 #create dec 2012 baseline ndvi measure
 #create temp and precip pre-trends
 
+## CREATE TREATMENT VAR
 
-## create treatment var
+af_panel$trt<-NA
+af_panel$trt[which(af_panel$qtr<af_panel$end_yearqtr)]<-0
+af_panel$trt[which(af_panel$qtr>=af_panel$end_yearqtr)]<-1
+summary(af_panel$trt)
 
+# manual check with smaller dataset
+dec_panel<-af_panel[af_panel$end_year==2016,]
 
-# create peak growing season var
+## CREATE PEAK GROWING SEASON VAR
+#=1 when peak growing season quarter, =0 otherwise
+#create variable that indicates quarter of observation only (without year)
+af_panel<-separate(af_panel,qtr,into=c("yearonly","qtronly"),sep=4,remove=FALSE,convert=TRUE)
+table(af_panel$yearonly)
+table(af_panel$qtronly)
 
+# check
+af_panel$yqtrcheck <- as.numeric(paste(af_panel$yearonly,af_panel$qtronly,sep=""))
+af_panel$qtrcheck <- af_panel$qtr-af_panel$yqtrcheck
+#should be all 0's
+table(af_panel$qtrcheck)
 
-
+#create peak growing season identifier var
+af_panel$peakqtr_id<-NA
+af_panel$peakqtr_id[which(af_panel$qtronly==af_panel$peakqtr)]<-1
+af_panel$peakqtr_id[which(af_panel$qtronly!=af_panel$peakqtr)]<-0
+#check
+table(af_panel$peakqtr_id)
+table(af_panel$peakqtr,af_panel$peakqtr_id)
+#manual check
+dec_panel<-af_panel[af_panel$end_year==2016,]
 
 #----------------
 #Workspace
