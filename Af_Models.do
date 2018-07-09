@@ -10,13 +10,14 @@ global project "/Users/rbtrichler/Box Sync/afghanistan_gie"
 import delimited "$project/ProcessedData/af_panel.csv", clear
 
 destring actual_end_date_iso, force replace
+destring ndvi, force replace
 
-
+*Create canal id
+encode project_id, generate (canal_id)
 
 * Generate weights
-bys project_id: egen canal_cells = count(reu_id) if qtr==20061
-sort project_id canal_cells
-by project_id: replace canal_cells=canal_cells[1]
+sort canal_id
+egen canal_cells = count(reu_id), by (canal_id qtr) 
 g	canal_weight = 1 / canal_cells
 
 save "${data}\all_community_panel_gimms", replace
