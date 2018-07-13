@@ -25,7 +25,7 @@ ndvi_pre_panel$quarter<-quarter(ndvi_pre_panel$actual_end_date_iso,with_year=TRU
 scatterplot = plot(ndvi_pre_panel$quarter, ndvi_pre_panel$ndvi, main="NDVI at Baseline", xlab="Quarter Cell Treated", ylab="NDVI at Baseline", pch=19)
 
 #creating boxplot
-library(ggplot2)
+library(ggplot2) 
 #create variable that identifies just quarter of treatment (no year)
 ndvi_pre_panel$quarteronly<-quarter(ndvi_pre_panel$actual_end_date_iso,with_year=FALSE, fiscal_start=12)
 
