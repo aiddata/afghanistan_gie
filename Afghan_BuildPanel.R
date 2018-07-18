@@ -74,21 +74,34 @@ afcells1<- merge(afcells, afproj_district, by="project_id")
 afcells<-afcells1
 #rename district/province name columns
 names(afcells)[names(afcells) == "NAME_1"] = "prov_name"
-names(afcells)[names(afcells) == "NAME_2"] = "dist_name"
+names(afcells)[names(afcells) == "NAME_2"] = "district_name"
 #do a manual/visual check of project end dates, then drop "actual end"
 afcells<-afcells[,-(7)]
 #create numeric var for province and district
 afcells$prov_id<-as.factor(afcells$prov_name)
 afcells$prov_id <- unclass(afcells$prov_id)
 
-afcells$dist_id<-as.factor(afcells$dist_name)
-afcells$dist_id<-unclass(afcells$dist_id)
+afcells$district_id<-as.factor(afcells$district_name)
+afcells$district_id<-unclass(afcells$district_id)
 
 # # double check creation of province id
 # table(afcells$prov_id)
 # table(afcells$prov_name)
 
+
 #-------
+## Read in distance to canal and distance to canal start point file, merge with afcells
+afdist<-read.csv("inputData/merge_canal_point_grid_distance.csv")
+#drop out project id info
+afdist <- afdist[,c(1:2,5)]
+#shorten names of distance vars
+colnames(afdist) <- sub("distance_to_canal.na.max","dist_canal",colnames(afdist))
+colnames(afdist) <- sub("distance_to_starts.na.max","dist_start",colnames(afdist))
+
+
+afcells<-merge(afcells,afdist,by="unique")
+
+# ----------------
 ## Read in and rename ndvi outcome data file, merge with cells
 
 #ndvi data extract from GeoQuery, join to points by field "unique"
@@ -399,4 +412,21 @@ prepanel_bamyan <- ndvi_pre_panel[ndvi_pre_panel$prov_id==3,]
 bamyan<-group_by(prepanel_bamyan, qtr)
 bamyanndvi <- summarize(bamyan, mean=mean(ndvi, na.rm=T), sd=sd(ndvi, na.rm=T),median=median(ndvi, na.rm=T),
                         max=max(ndvi, na.rm=T), IQR=IQR(ndvi, na.rm=T))
+
+#subset to one canal
+subcanal<-afwide[afwide$project_id=="N001",]
+summary(subcanal$distance_to_canal.na)
+plot(subcanal$reu_id,subcanal$distance_to_canal.na)
+plot(subcanal$ndvi_20131,subcanal$distance_to_canal.na)
+table(subcanal$distance_to_canal.na)
+
+#subset afwide to look at distance to canal
+distcanal<-afwide[,c(1:3,48:51)]
+distcanal<-merge(afcells_geo,distcanal,by.x="afcells.reu_id",by.y="reu_id")
+
+st_write(distcanal, "distcanal_geojson",layer="distcanal", driver="GeoJSON")
+
+#subset to one canal
+subcanal<-afwide[afwide$project_id=="N001",]
+summary(subcanal$distance_to_canal.na)
 
