@@ -128,6 +128,10 @@ for (i in years)
 #drop repeat vars
 afmerge <- afmerge[,-grep("project_",colnames(afmerge))]
 afmerge <- afmerge[,-grep("end_date",colnames(afmerge))]
+#drop distance_to_canal as it uses OLD process and was replaced with afdist file
+#it averaged the distance to canal values of multiple cells, rather than identifying distance from cell that point falls in
+#ask Seth if more questions
+afmerge<-afmerge[,-grep("distance_",colnames(afmerge))]
 
 #merge with afcells
 afwide<-merge(afmerge, afcells, by="unique")
@@ -137,6 +141,16 @@ afwide<-merge(afmerge, afcells, by="unique")
 afcovar<-read.csv("inputData/merge_canal_point_grid_other.csv")
 afcovar <- afcovar[,-grep("project_",colnames(afcovar))]
 afcovar <- afcovar[,-grep("end_date",colnames(afcovar))]
+
+#create 2012 baseline values for udel precip and temp and drop others
+colnames(afcovar) <- sub("udel_precip_v4_01_yearly_mean.2012","precip_2012",colnames(afcovar))
+afcovar <- afcovar[,-grep("udel_precip",colnames(afcovar))]
+colnames(afcovar) <- sub("udel_air_temp_v4_01_yearly_mean.2012","temp_2012",colnames(afcovar))
+afcovar <- afcovar[,-grep("udel_air",colnames(afcovar))]
+
+#rename ntl
+colnames(afcovar) <- sub("v4composites_calibrated_201709.","dmsp_",colnames(afcovar))
+colnames(afcovar) <- sub("viirs_ntl_yearly.","viirs_",colnames(afcovar))
 
 #merge covar data
 
@@ -159,14 +173,32 @@ aftemp<-aftemp[,c(1:14,288:683,786:789)]
 
 #rename temp variable
 colnames(aftemp) <- gsub("modis_lst_day_monthly.","temp_",colnames(aftemp),fixed=TRUE)
-colnames(aftemp) <- sub("\\.max", "max_\\",colnames(aftemp),fixed=TRUE)
+
+#subset for checking
+aftempsub<-aftemp[aftemp$project_id=="B001",]
+aftemp <- aftempsub
+
+year<-c("2006","2007")
+year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
+
+for (i in year)
+{
+  spring<-c((paste0("temp_",i,"03.max")),(paste0("temp_",i,"04.max")),(paste0("temp_",i,"05.max")))
+  aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[spring],1,FUN=max)
+  
+}  
+
+#do this for each season and min, mean, max
+
+aftempsub<-aftemp[,c(15:16,27:28,41:43,113:115,411:427)]
+table(aftempsub$maxtemp_20061)
+table(aftempsub$mintemp_20071)
+table(aftempsub$temp_200805.max, aftempsub$maxtemp_20082)
+
 
 
 txt <- c("arm","foot","lefroo", "bafoobar")
 if(any(i <- grep("foo",txt)))
-
-type<-c("min","mean","max")
-for (i in)
 
 
 #create quarterly min variable
@@ -175,7 +207,7 @@ year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2
 
 for (i in year)
 {
-  aftemp[paste0("modis_lst_day_monthly.")]
+  aftemp[paste0("")]
 }
 
 for(i in 1:8)
