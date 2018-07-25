@@ -157,8 +157,6 @@ colnames(afcovar) <- sub("viirs_ntl_yearly.","viirs_",colnames(afcovar))
 afwide1<-merge(afwide, afcovar, by="unique")
 afwide<-afwide1
 
-# --------------
-#scratch
 
 # GeoQuery Extract #2 
 # Read in extract that Miranda performed
@@ -174,27 +172,94 @@ aftemp<-aftemp[,c(1:14,288:683,786:789)]
 #rename temp variable
 colnames(aftemp) <- gsub("modis_lst_day_monthly.","temp_",colnames(aftemp),fixed=TRUE)
 
+#rename december temp values
+# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
+
+for (i in 2006:2015)
+{
+  colnames(aftemp)<-sub(paste0("temp_",i,"12.max"),(paste0("temp_",i+1,"00.max")),colnames(aftemp))
+  colnames(aftemp)<-sub(paste0("temp_",i,"12.mean"),(paste0("temp_",i+1,"00.mean")),colnames(aftemp))
+  colnames(aftemp)<-sub(paste0("temp_",i,"12.min"),(paste0("temp_",i+1,"00.min")),colnames(aftemp))
+  
+}
+
+#do 2006 winter quarter separately
+
+for (i in 2007:2016)
+{
+  wintermax<-c((paste0("temp_",i,"00.max")),(paste0("temp_",i,"01.max")),(paste0("temp_",i,"02.max")))
+  aftemp[paste0("maxtemp_",i,"1")]<-apply(aftemp[wintermax],1,FUN=max)
+  wintermean<-c((paste0("temp_",i,"00.mean")),(paste0("temp_",i,"01.mean")),(paste0("temp_",i,"02.mean")))
+  aftemp[paste0("meantemp_",i,"1")]<-apply(aftemp[wintermean],1,FUN=mean)
+  wintermin<-c((paste0("temp_",i,"00.min")),(paste0("temp_",i,"01.min")),(paste0("temp_",i,"02.min")))
+  aftemp[paste0("mintemp_",i,"1")]<-apply(aftemp[wintermin],1,FUN=min)
+  
+}
+
 #subset for checking
 aftempsub<-aftemp[aftemp$project_id=="B001",]
 aftemp <- aftempsub
 
-year<-c("2006","2007")
 year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
 
+#loop to create quarterly vars for max temp
 for (i in year)
 {
-  spring<-c((paste0("temp_",i,"03.max")),(paste0("temp_",i,"04.max")),(paste0("temp_",i,"05.max")))
-  aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[spring],1,FUN=max)
+  springmax<-c((paste0("temp_",i,"03.max")),(paste0("temp_",i,"04.max")),(paste0("temp_",i,"05.max")))
+  aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[springmax],1,FUN=max)
+  summermax<-c((paste0("temp_",i,"06.max")),(paste0("temp_",i,"07.max")),(paste0("temp_",i,"08.max")))
+  aftemp[paste0("maxtemp_",i,"3")]<-apply(aftemp[summermax],1,FUN=max)
+  fallmax<-c((paste0("temp_",i,"09.max")),(paste0("temp_",i,"10.max")),(paste0("temp_",i,"11.max")))
+  aftemp[paste0("maxtemp_",i,"4")]<-apply(aftemp[fallmax],1,FUN=max)
   
 }  
 
 #do this for each season and min, mean, max
 
-aftempsub<-aftemp[,c(15:16,27:28,41:43,113:115,411:427)]
-table(aftempsub$maxtemp_20061)
-table(aftempsub$mintemp_20071)
-table(aftempsub$temp_200805.max, aftempsub$maxtemp_20082)
+aftempsub<-aftemp[,c(15:16,27:38,111:122,411:449)]
+table(aftempsub$temp_200705.max, aftempsub$maxtemp_20072)
+table(aftempsub$temp_201405.max, aftempsub$maxtemp_20142)
+table(aftempsub$temp_200707.max, aftempsub$maxtemp_20073)
+table(aftempsub$temp_201407.max, aftempsub$maxtemp_20143)
+table(aftempsub$temp_200709.max, aftempsub$maxtemp_20074)
+table(aftempsub$temp_201409.max, aftempsub$maxtemp_20144)
 
+#loop to create quarterly vars for mean temp
+for (i in year)
+{
+  springmean<-c((paste0("temp_",i,"03.mean")),(paste0("temp_",i,"04.mean")),(paste0("temp_",i,"05.mean")))
+  aftemp[paste0("meantemp_",i,"2")]<-apply(aftemp[springmean],1,FUN=mean)
+  summermean<-c((paste0("temp_",i,"06.mean")),(paste0("temp_",i,"07.mean")),(paste0("temp_",i,"08.mean")))
+  aftemp[paste0("meantemp_",i,"3")]<-apply(aftemp[summermean],1,FUN=mean)
+  fallmean<-c((paste0("temp_",i,"09.mean")),(paste0("temp_",i,"10.mean")),(paste0("temp_",i,"11.mean")))
+  aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fallmean],1,FUN=mean)
+  
+} 
+
+#check
+#manually check averages, then run tables to see that distribution of different values matches
+aftempsub<-aftemp[,c(183:194,267:278,413,449:482)]
+table(aftempsub$temp_200905.mean, aftempsub$meantemp_20092)
+table(aftempsub$temp_201607.mean, aftempsub$meantemp_20163)
+table(aftempsub$temp_200909.mean, aftempsub$meantemp_20094)
+
+#loop to create quarterly vars for min temp
+for (i in year)
+{
+  springmin<-c((paste0("temp_",i,"03.min")),(paste0("temp_",i,"04.min")),(paste0("temp_",i,"05.min")))
+  aftemp[paste0("mintemp_",i,"2")]<-apply(aftemp[springmin],1,FUN=min)
+  summermin<-c((paste0("temp_",i,"06.min")),(paste0("temp_",i,"07.min")),(paste0("temp_",i,"08.min")))
+  aftemp[paste0("mintemp_",i,"3")]<-apply(aftemp[summermin],1,FUN=min)
+  fallmin<-c((paste0("temp_",i,"09.min")),(paste0("temp_",i,"10.min")),(paste0("temp_",i,"11.min")))
+  aftemp[paste0("mintemp_",i,"4")]<-apply(aftemp[fallmin],1,FUN=min)
+  
+}
+
+#check
+aftempsub<-aftemp[,c(281:290,351:362,413,483:515)]
+table(aftempsub$temp_200603.min, aftempsub$mintemp_20062)
+table(aftempsub$temp_201206.min, aftempsub$mintemp_20123)
+table(aftempsub$temp_200611.min, aftempsub$mintemp_20064)
 
 
 txt <- c("arm","foot","lefroo", "bafoobar")
