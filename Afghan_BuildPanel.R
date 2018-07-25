@@ -152,16 +152,15 @@ afcovar <- afcovar[,-grep("udel_air",colnames(afcovar))]
 colnames(afcovar) <- sub("v4composites_calibrated_201709.","dmsp_",colnames(afcovar))
 colnames(afcovar) <- sub("viirs_ntl_yearly.","viirs_",colnames(afcovar))
 
-#merge covar data
+#merge covar data into afwide
 
 afwide1<-merge(afwide, afcovar, by="unique")
 afwide<-afwide1
 
 
-# GeoQuery Extract #2 
-# Read in extract that Miranda performed
-# temp data
-# trying to change monthly mean, min, max to quarterly
+## GeoQuery Extract #2 
+# Read in extract from Miranda with temp data
+# need to change monthly mean, min, max to quarterly
 
 # read in extract file
 aftemp<-read.csv("inputData/merge_afg_GIE.csv")
@@ -184,7 +183,14 @@ for (i in 2006:2015)
 }
 
 #do 2006 winter quarter separately
+max06<-c("temp_200601.max","temp_200602.max")
+aftemp$maxtemp_20061<-apply(aftemp[max06],1,FUN=max)
+mean06<-c("temp_200601.mean","temp_200602.mean")
+aftemp$meantemp_20061<-apply(aftemp[mean06],1,FUN=mean)
+min06<-c("temp_200601.min","temp_200602.min")
+aftemp$mintemp_20061<-apply(aftemp[min06],1,FUN=min)
 
+#Winter vars, 2007-2016
 for (i in 2007:2016)
 {
   wintermax<-c((paste0("temp_",i,"00.max")),(paste0("temp_",i,"01.max")),(paste0("temp_",i,"02.max")))
@@ -195,10 +201,6 @@ for (i in 2007:2016)
   aftemp[paste0("mintemp_",i,"1")]<-apply(aftemp[wintermin],1,FUN=min)
   
 }
-
-#subset for checking
-aftempsub<-aftemp[aftemp$project_id=="B001",]
-aftemp <- aftempsub
 
 year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
 
@@ -214,16 +216,6 @@ for (i in year)
   
 }  
 
-#do this for each season and min, mean, max
-
-aftempsub<-aftemp[,c(15:16,27:38,111:122,411:449)]
-table(aftempsub$temp_200705.max, aftempsub$maxtemp_20072)
-table(aftempsub$temp_201405.max, aftempsub$maxtemp_20142)
-table(aftempsub$temp_200707.max, aftempsub$maxtemp_20073)
-table(aftempsub$temp_201407.max, aftempsub$maxtemp_20143)
-table(aftempsub$temp_200709.max, aftempsub$maxtemp_20074)
-table(aftempsub$temp_201409.max, aftempsub$maxtemp_20144)
-
 #loop to create quarterly vars for mean temp
 for (i in year)
 {
@@ -235,13 +227,6 @@ for (i in year)
   aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fallmean],1,FUN=mean)
   
 } 
-
-#check
-#manually check averages, then run tables to see that distribution of different values matches
-aftempsub<-aftemp[,c(183:194,267:278,413,449:482)]
-table(aftempsub$temp_200905.mean, aftempsub$meantemp_20092)
-table(aftempsub$temp_201607.mean, aftempsub$meantemp_20163)
-table(aftempsub$temp_200909.mean, aftempsub$meantemp_20094)
 
 #loop to create quarterly vars for min temp
 for (i in year)
@@ -255,36 +240,143 @@ for (i in year)
   
 }
 
-#check
-aftempsub<-aftemp[,c(281:290,351:362,413,483:515)]
+#CHECK TEMP CREATION
+aftempsub<-aftemp[aftemp$project_id=="B001",]
+
+#check max - the months selected should be the maximum values for that quarter (so actual values should match)
+table(aftempsub$temp_200602.max, aftempsub$maxtemp_20061)
+table(aftempsub$temp_200705.max, aftempsub$maxtemp_20072)
+table(aftempsub$temp_201407.max, aftempsub$maxtemp_20143)
+table(aftempsub$temp_201009.max, aftempsub$maxtemp_20104)
+
+#check mean - manually check actual average values; values won't match but distribution will
+table(aftempsub$temp_200905.mean, aftempsub$meantemp_20092)
+table(aftempsub$temp_201607.mean, aftempsub$meantemp_20163)
+table(aftempsub$temp_200909.mean, aftempsub$meantemp_20094)
+
+#check min - months selected should be min for quarter, so actual values should match
 table(aftempsub$temp_200603.min, aftempsub$mintemp_20062)
 table(aftempsub$temp_201206.min, aftempsub$mintemp_20123)
 table(aftempsub$temp_200611.min, aftempsub$mintemp_20064)
 
 
-txt <- c("arm","foot","lefroo", "bafoobar")
-if(any(i <- grep("foo",txt)))
+# MERGE aftemp into afwide
+#cut down aftemp to relevant variables
+aftempslim <- aftemp[,c(1,3,6,9,12,15:546)]
+colnames(aftempslim) <- sub("srtm_slope_500m.na.max","slope",colnames(aftempslim))
+colnames(aftempslim) <- sub("srtm_elevation_500m.na.mean","elevation",colnames(aftempslim))
+colnames(aftempslim) <- sub("dist_to_water.na.mean","rivdist",colnames(aftempslim))
+colnames(aftempslim) <- sub("dist_to_groads.na.mean","roaddist",colnames(aftempslim))
+colnames(aftempslim) <- sub("accessibility_map.na.mean","urbtravtime",colnames(aftempslim))
 
+aftempslim <- aftempslim[,-grep(".min",colnames(aftempslim))]
+aftempslim <- aftempslim[,-grep(".mean",colnames(aftempslim))]
+aftempslim <- aftempslim[,-grep(".max",colnames(aftempslim))]
 
-#create quarterly min variable
+afwide1.1<-merge(afwide, aftempslim, by="unique")
+afwide<-afwide1.1
+
+## GEOQUERY EXTRACT CRU PRECIP 
+
+cruprecip<-read.csv("inputData/merge_afg_CRUPrecip.csv")
+
+colnames(cruprecip) <- gsub("cru_precipitation_monthly.","cruprecip_",colnames(cruprecip),fixed=TRUE)
+
+#CHANGE MONTHLY INTO QUARTERLY
+
+#rename december values
+# e.g. precip_201212 becomes precip_200700 to make it easier to create quarterly vars from monthly
+
+for (i in 2006:2015)
+{
+  colnames(cruprecip)<-sub(paste0("cruprecip_",i,"12.max"),(paste0("cruprecip_",i+1,"00.max")),colnames(cruprecip))
+  colnames(cruprecip)<-sub(paste0("cruprecip_",i,"12.mean"),(paste0("cruprecip_",i+1,"00.mean")),colnames(cruprecip))
+  colnames(cruprecip)<-sub(paste0("cruprecip_",i,"12.min"),(paste0("cruprecip_",i+1,"00.min")),colnames(cruprecip))
+  
+}
+
+#do 2006 winter quarter separately
+max06<-c("cruprecip_200601.max","cruprecip_200602.max")
+cruprecip$maxcrup_20061<-apply(cruprecip[max06],1,FUN=max)
+mean06<-c("cruprecip_200601.mean","cruprecip_200602.mean")
+cruprecip$meancrup_20061<-apply(cruprecip[mean06],1,FUN=mean)
+min06<-c("cruprecip_200601.min","cruprecip_200602.min")
+cruprecip$mincrup_20061<-apply(cruprecip[min06],1,FUN=min)
+
+#Winter vars, 2007-2016
+for (i in 2007:2016)
+{
+  wintermax<-c((paste0("cruprecip_",i,"00.max")),(paste0("cruprecip_",i,"01.max")),(paste0("cruprecip_",i,"02.max")))
+  cruprecip[paste0("maxcrup_",i,"1")]<-apply(cruprecip[wintermax],1,FUN=max)
+  wintermean<-c((paste0("cruprecip_",i,"00.mean")),(paste0("cruprecip_",i,"01.mean")),(paste0("cruprecip_",i,"02.mean")))
+  cruprecip[paste0("meancrup_",i,"1")]<-apply(cruprecip[wintermean],1,FUN=mean)
+  wintermin<-c((paste0("cruprecip_",i,"00.min")),(paste0("cruprecip_",i,"01.min")),(paste0("cruprecip_",i,"02.min")))
+  cruprecip[paste0("mincrup_",i,"1")]<-apply(cruprecip[wintermin],1,FUN=min)
+  
+}
 
 year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
 
+#loop to create quarterly vars for max precip
 for (i in year)
 {
-  aftemp[paste0("")]
-}
+  springmax<-c((paste0("cruprecip_",i,"03.max")),(paste0("cruprecip_",i,"04.max")),(paste0("cruprecip_",i,"05.max")))
+  cruprecip[paste0("maxcrup_",i,"2")]<-apply(cruprecip[springmax],1,FUN=max)
+  summermax<-c((paste0("cruprecip_",i,"06.max")),(paste0("cruprecip_",i,"07.max")),(paste0("cruprecip_",i,"08.max")))
+  cruprecip[paste0("maxcrup_",i,"3")]<-apply(cruprecip[summermax],1,FUN=max)
+  fallmax<-c((paste0("cruprecip_",i,"09.max")),(paste0("cruprecip_",i,"10.max")),(paste0("cruprecip_",i,"11.max")))
+  cruprecip[paste0("maxcrup_",i,"4")]<-apply(cruprecip[fallmax],1,FUN=max)
+  
+}  
 
-for(i in 1:8)
+#loop to create quarterly vars for mean precip
+for (i in year)
 {
-  x_merged[paste0("date_", i)][is.na(x_merged[paste0("date_", i)]) & 
-                                 !is.na(x_merged[paste0("road_", i)])] <- paste0("9999-01-0", i)
+  springmean<-c((paste0("cruprecip_",i,"03.mean")),(paste0("cruprecip_",i,"04.mean")),(paste0("cruprecip_",i,"05.mean")))
+  cruprecip[paste0("meancrup_",i,"2")]<-apply(cruprecip[springmean],1,FUN=mean)
+  summermean<-c((paste0("cruprecip_",i,"06.mean")),(paste0("cruprecip_",i,"07.mean")),(paste0("cruprecip_",i,"08.mean")))
+  cruprecip[paste0("meancrup_",i,"3")]<-apply(cruprecip[summermean],1,FUN=mean)
+  fallmean<-c((paste0("cruprecip_",i,"09.mean")),(paste0("cruprecip_",i,"10.mean")),(paste0("cruprecip_",i,"11.mean")))
+  cruprecip[paste0("meancrup_",i,"4")]<-apply(cruprecip[fallmean],1,FUN=mean)
+  
+} 
+
+#loop to create quarterly vars for min precip
+for (i in year)
+{
+  springmin<-c((paste0("cruprecip_",i,"03.min")),(paste0("cruprecip_",i,"04.min")),(paste0("cruprecip_",i,"05.min")))
+  cruprecip[paste0("mincrup_",i,"2")]<-apply(cruprecip[springmin],1,FUN=min)
+  summermin<-c((paste0("cruprecip_",i,"06.min")),(paste0("cruprecip_",i,"07.min")),(paste0("cruprecip_",i,"08.min")))
+  cruprecip[paste0("mincrup_",i,"3")]<-apply(cruprecip[summermin],1,FUN=min)
+  fallmin<-c((paste0("cruprecip_",i,"09.min")),(paste0("cruprecip_",i,"10.min")),(paste0("cruprecip_",i,"11.min")))
+  cruprecip[paste0("mincrup_",i,"4")]<-apply(cruprecip[fallmin],1,FUN=min)
+  
 }
 
+#Check CRU Precip
+cruprecipsub<-cruprecip[cruprecip$project_id=="K007",]
 
-# end scratch
-# --------------------------
+#check values
+table(cruprecipsub$cruprecip_200601.max, cruprecipsub$maxcrup_20061)
+table(cruprecipsub$cruprecip_200704.min, cruprecipsub$mincrup_20072)
+table(cruprecipsub$cruprecip_200709.mean, cruprecipsub$meancrup_20074)
 
+# MERGE cruprecip into afwide
+#cut down cruprecip to relevant variables
+crupslim <- cruprecip[,c(399,401:533)]
+
+afwide1.2<-merge(afwide, crupslim, by="unique")
+afwide<-afwide1.2
+
+## GEOQUERY EXTRACT CRU TEMP 
+
+cruprecip<-read.csv("inputData/merge_afg_CRUPrecip.csv")
+
+colnames(cruprecip) <- gsub("cru_precipitation_monthly.","cruprecip_",colnames(cruprecip),fixed=TRUE)
+
+
+
+### CHECK FOR MAXTEMP_20071 ######
 
 ##-----------------------
 # Create NDVI pre-panel
@@ -480,6 +572,9 @@ table(af_panel$peakqtr_id)
 table(af_panel$peakqtr,af_panel$peakqtr_id)
 #manual check
 dec_panel<-af_panel[af_panel$end_year==2016,]
+
+
+
 
 #----------------
 #Workspace
