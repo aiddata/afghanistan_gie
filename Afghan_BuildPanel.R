@@ -91,13 +91,15 @@ afcells$district_id<-unclass(afcells$district_id)
 
 #-------
 ## Read in distance to canal and distance to canal start point file, merge with afcells
+# The old information included with afmerge was calculated incorrectly
+# updated the cells to properly center around the points and give better distance to canal (instead of averaging across multiple cells)
+# don't know if distance to start corresponds with primary canal (where this is overlap); but it is the closest start point
 afdist<-read.csv("inputData/merge_canal_point_grid_distance.csv")
 #drop out project id info
 afdist <- afdist[,c(1:2,5)]
 #shorten names of distance vars
 colnames(afdist) <- sub("distance_to_canal.na.max","dist_canal",colnames(afdist))
 colnames(afdist) <- sub("distance_to_starts.na.max","dist_start",colnames(afdist))
-
 
 afcells<-merge(afcells,afdist,by="unique")
 
@@ -143,9 +145,9 @@ afcovar <- afcovar[,-grep("project_",colnames(afcovar))]
 afcovar <- afcovar[,-grep("end_date",colnames(afcovar))]
 
 #create 2012 baseline values for udel precip and temp and drop others
-colnames(afcovar) <- sub("udel_precip_v4_01_yearly_mean.2012","precip_2012",colnames(afcovar))
+colnames(afcovar) <- sub("udel_precip_v4_01_yearly_mean.2012","udelprecip_2012",colnames(afcovar))
 afcovar <- afcovar[,-grep("udel_precip",colnames(afcovar))]
-colnames(afcovar) <- sub("udel_air_temp_v4_01_yearly_mean.2012","temp_2012",colnames(afcovar))
+colnames(afcovar) <- sub("udel_air_temp_v4_01_yearly_mean.2012","udeltemp_2012",colnames(afcovar))
 afcovar <- afcovar[,-grep("udel_air",colnames(afcovar))]
 
 #rename ntl
@@ -243,35 +245,22 @@ for (i in year)
 #CHECK TEMP CREATION
 aftempsub<-aftemp[aftemp$project_id=="B001",]
 
-#check max - the months selected should be the maximum values for that quarter (so actual values should match)
+#check 
 table(aftempsub$temp_200602.max, aftempsub$maxtemp_20061)
 table(aftempsub$temp_200705.max, aftempsub$maxtemp_20072)
-table(aftempsub$temp_201407.max, aftempsub$maxtemp_20143)
-table(aftempsub$temp_201009.max, aftempsub$maxtemp_20104)
-
-#check mean - manually check actual average values; values won't match but distribution will
-table(aftempsub$temp_200905.mean, aftempsub$meantemp_20092)
 table(aftempsub$temp_201607.mean, aftempsub$meantemp_20163)
 table(aftempsub$temp_200909.mean, aftempsub$meantemp_20094)
-
-#check min - months selected should be min for quarter, so actual values should match
-table(aftempsub$temp_200603.min, aftempsub$mintemp_20062)
-table(aftempsub$temp_201206.min, aftempsub$mintemp_20123)
 table(aftempsub$temp_200611.min, aftempsub$mintemp_20064)
 
 
 # MERGE aftemp into afwide
 #cut down aftemp to relevant variables
-aftempslim <- aftemp[,c(1,3,6,9,12,15:546)]
+aftempslim <- aftemp[,c(1,3,6,9,12,413,415:546)]
 colnames(aftempslim) <- sub("srtm_slope_500m.na.max","slope",colnames(aftempslim))
 colnames(aftempslim) <- sub("srtm_elevation_500m.na.mean","elevation",colnames(aftempslim))
 colnames(aftempslim) <- sub("dist_to_water.na.mean","rivdist",colnames(aftempslim))
 colnames(aftempslim) <- sub("dist_to_groads.na.mean","roaddist",colnames(aftempslim))
 colnames(aftempslim) <- sub("accessibility_map.na.mean","urbtravtime",colnames(aftempslim))
-
-aftempslim <- aftempslim[,-grep(".min",colnames(aftempslim))]
-aftempslim <- aftempslim[,-grep(".mean",colnames(aftempslim))]
-aftempslim <- aftempslim[,-grep(".max",colnames(aftempslim))]
 
 afwide1.1<-merge(afwide, aftempslim, by="unique")
 afwide<-afwide1.1
@@ -363,7 +352,7 @@ table(cruprecipsub$cruprecip_200709.mean, cruprecipsub$meancrup_20074)
 
 # MERGE cruprecip into afwide
 #cut down cruprecip to relevant variables
-crupslim <- cruprecip[,c(399,401:533)]
+crupslim <- cruprecip[,c(399,401:532)]
 
 afwide1.2<-merge(afwide, crupslim, by="unique")
 afwide<-afwide1.2
@@ -463,10 +452,10 @@ colnames(crutslim) <- gsub("temp","crut",colnames(crutslim),fixed=TRUE)
 afwide1.3<-merge(afwide, crutslim, by="unique")
 afwide<-afwide1.3
 
-### CHECK FOR MAXTEMP_20071 ######
 
 ##-----------------------
 # Create NDVI pre-panel
+# for descriptive work
 ## ----------------------
 
 ## Create panel dataset for 2006-2012 only
@@ -556,10 +545,6 @@ ndvi_pre_panel<-ndvi_pre_panel1
 afwide2<-merge(afwide, obj_coeff, by="reu_id")
 afwide<-afwide2
 
-#write.csv (afwide,"afwide.csv")
-
-
-
 #---------
 ## Prep Full Panel Build 
 # ---------
@@ -599,23 +584,31 @@ afwide$peakqtr<-2
 afwide$peakqtr[afwide$prov_id==3|afwide$prov_id==11]<-3
 table(afwide$prov_id,afwide$peakqtr)
 
-##drop out vars we don't want to keep
-afwide3<-afwide[,-grep("temp",colnames(afwide))]
-afwide3<-afwide3[,-grep("precip",colnames(afwide3))]
-
+write.csv (afwide,"ProcessedData/afwide.csv")
 
 # ----------
 ## Build Panel 
 # ----------
 
 #Order variables by name/time to allow reshape to work properly
-af_reshape<-afwide3[,order(names(afwide3))]
+af_reshape<-afwide[,order(names(afwide))]
 
 #Identify variables where values will change yearly in panel dataset
 ndvi<-grep("ndvi_",names(af_reshape))
+mint<-grep("mintemp_",names(af_reshape))
+meant<-grep("meantemp_",names(af_reshape))
+maxt<-grep("maxtemp_",names(af_reshape))
+mincrup<-grep("mincrup",names(af_reshape))
+meancrup<-grep("meancrup",names(af_reshape))
+maxcrup<-grep("maxcrup",names(af_reshape))
+mincrut<-grep("mincrut",names(af_reshape))
+meancrut<-grep("meancrut",names(af_reshape))
+maxcrut<-grep("maxcrut",names(af_reshape))
 
-all_reshape <- c(ndvi)
+all_reshape <- c(ndvi,mint, meant, maxt, mincrup, meancrup, maxcrup,mincrut,meancrut,maxcrut)
 af_panel <- reshape(af_reshape, varying=all_reshape, direction="long",idvar="unique",sep="_",timevar="qtr")
+
+write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
 
 write.csv(af_panel,"ProcessedData/af_panel.csv")
 
