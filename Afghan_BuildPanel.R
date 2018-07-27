@@ -370,11 +370,98 @@ afwide<-afwide1.2
 
 ## GEOQUERY EXTRACT CRU TEMP 
 
-cruprecip<-read.csv("inputData/merge_afg_CRUPrecip.csv")
+crutemp<-read.csv("inputData/merge_afg_CRUTemp.csv")
 
-colnames(cruprecip) <- gsub("cru_precipitation_monthly.","cruprecip_",colnames(cruprecip),fixed=TRUE)
+colnames(crutemp) <- gsub("cru_tmp_monthly.","temp_",colnames(crutemp),fixed=TRUE)
 
+#rename december temp values
+# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
 
+for (i in 2006:2015)
+{
+  colnames(crutemp)<-sub(paste0("temp_",i,"12.max"),(paste0("temp_",i+1,"00.max")),colnames(crutemp))
+  colnames(crutemp)<-sub(paste0("temp_",i,"12.mean"),(paste0("temp_",i+1,"00.mean")),colnames(crutemp))
+  colnames(crutemp)<-sub(paste0("temp_",i,"12.min"),(paste0("temp_",i+1,"00.min")),colnames(crutemp))
+  
+}
+
+#do 2006 winter quarter separately
+max06<-c("temp_200601.max","temp_200602.max")
+crutemp$maxtemp_20061<-apply(crutemp[max06],1,FUN=max)
+mean06<-c("temp_200601.mean","temp_200602.mean")
+crutemp$meantemp_20061<-apply(crutemp[mean06],1,FUN=mean)
+min06<-c("temp_200601.min","temp_200602.min")
+crutemp$mintemp_20061<-apply(crutemp[min06],1,FUN=min)
+
+#Winter vars, 2007-2016
+for (i in 2007:2016)
+{
+  wintermax<-c((paste0("temp_",i,"00.max")),(paste0("temp_",i,"01.max")),(paste0("temp_",i,"02.max")))
+  crutemp[paste0("maxtemp_",i,"1")]<-apply(crutemp[wintermax],1,FUN=max)
+  wintermean<-c((paste0("temp_",i,"00.mean")),(paste0("temp_",i,"01.mean")),(paste0("temp_",i,"02.mean")))
+  crutemp[paste0("meantemp_",i,"1")]<-apply(crutemp[wintermean],1,FUN=mean)
+  wintermin<-c((paste0("temp_",i,"00.min")),(paste0("temp_",i,"01.min")),(paste0("temp_",i,"02.min")))
+  crutemp[paste0("mintemp_",i,"1")]<-apply(crutemp[wintermin],1,FUN=min)
+  
+}
+
+year<-c("2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016")
+
+#loop to create quarterly vars for max temp
+for (i in year)
+{
+  springmax<-c((paste0("temp_",i,"03.max")),(paste0("temp_",i,"04.max")),(paste0("temp_",i,"05.max")))
+  crutemp[paste0("maxtemp_",i,"2")]<-apply(crutemp[springmax],1,FUN=max)
+  summermax<-c((paste0("temp_",i,"06.max")),(paste0("temp_",i,"07.max")),(paste0("temp_",i,"08.max")))
+  crutemp[paste0("maxtemp_",i,"3")]<-apply(crutemp[summermax],1,FUN=max)
+  fallmax<-c((paste0("temp_",i,"09.max")),(paste0("temp_",i,"10.max")),(paste0("temp_",i,"11.max")))
+  crutemp[paste0("maxtemp_",i,"4")]<-apply(crutemp[fallmax],1,FUN=max)
+  
+}  
+
+#loop to create quarterly vars for mean temp
+for (i in year)
+{
+  springmean<-c((paste0("temp_",i,"03.mean")),(paste0("temp_",i,"04.mean")),(paste0("temp_",i,"05.mean")))
+  crutemp[paste0("meantemp_",i,"2")]<-apply(crutemp[springmean],1,FUN=mean)
+  summermean<-c((paste0("temp_",i,"06.mean")),(paste0("temp_",i,"07.mean")),(paste0("temp_",i,"08.mean")))
+  crutemp[paste0("meantemp_",i,"3")]<-apply(crutemp[summermean],1,FUN=mean)
+  fallmean<-c((paste0("temp_",i,"09.mean")),(paste0("temp_",i,"10.mean")),(paste0("temp_",i,"11.mean")))
+  crutemp[paste0("meantemp_",i,"4")]<-apply(crutemp[fallmean],1,FUN=mean)
+  
+} 
+
+#loop to create quarterly vars for min temp
+for (i in year)
+{
+  springmin<-c((paste0("temp_",i,"03.min")),(paste0("temp_",i,"04.min")),(paste0("temp_",i,"05.min")))
+  crutemp[paste0("mintemp_",i,"2")]<-apply(crutemp[springmin],1,FUN=min)
+  summermin<-c((paste0("temp_",i,"06.min")),(paste0("temp_",i,"07.min")),(paste0("temp_",i,"08.min")))
+  crutemp[paste0("mintemp_",i,"3")]<-apply(crutemp[summermin],1,FUN=min)
+  fallmin<-c((paste0("temp_",i,"09.min")),(paste0("temp_",i,"10.min")),(paste0("temp_",i,"11.min")))
+  crutemp[paste0("mintemp_",i,"4")]<-apply(crutemp[fallmin],1,FUN=min)
+  
+}
+
+#CHECK TEMP CREATION
+crutempsub<-crutemp[crutemp$project_id=="B001",]
+
+#check values
+table(crutempsub$temp_200602.max, crutempsub$maxtemp_20061)
+table(crutempsub$temp_200705.max, crutempsub$maxtemp_20072)
+table(crutempsub$temp_201607.mean, crutempsub$meantemp_20163)
+table(crutempsub$temp_201206.min, crutempsub$mintemp_20123)
+
+#rename
+
+# MERGE crutemp into afwide
+#cut down cruprecip to relevant variables
+crutslim <- crutemp[,c(399,401:532)]
+
+colnames(crutslim) <- gsub("temp","crut",colnames(crutslim),fixed=TRUE)
+
+afwide1.3<-merge(afwide, crutslim, by="unique")
+afwide<-afwide1.3
 
 ### CHECK FOR MAXTEMP_20071 ######
 
