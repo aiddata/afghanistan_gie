@@ -7,22 +7,82 @@ global project "/Users/careyglenn/Box Sync/afghanistan_gie"
 global project "/Users/rbtrichler/Box Sync/afghanistan_gie"
 
 *Import file
+
 import delimited "$project/ProcessedData/af_panel.csv", clear
 
 destring actual_end_date_iso, force replace
 destring ndvi, force replace
 
-*Create canal id
-encode project_id, generate (canal_id)
+*Read file
+use "$project/ProcessedData/af_panel.dta", clear
+
 
 * Generate weights
-sort canal_id
-egen canal_cells = count(reu_id), by (canal_id qtr) 
+sort project_id
+egen canal_cells = count(reu_id), by (project_id qtr) 
 g	canal_weight = 1 / canal_cells
 
-save "${data}\all_community_panel_gimms", replace
+*generate baseline ndvi from 2012 q4
+bys reu_id (qtr): gen ndvi_20124=ndvi[28]
+
+*gen categorical distance to canal var, both quartiles and set values
+
+xtile dist_canal_quart=dist_canal,n(4) 
+
+generate dist_canal_cat = .
+replace dist_canal_cat = 1 if (dist_canal<31)
+replace dist_canal_cat=2 if (dist_canal>=31) & (dist_canal<91)
+replace dist_canal_cat=3 if (dist_canal>=91) & (dist_canal<152)
+replace dist_canal_cat=4 if (dist_canal>=152)
+
+sum dist_canal, detail
+sum dist_canal if dist_canal_cat==1
+sum dist_canal if dist_canal_cat==2
+
+*gen categorical ditance to canal start
+
+xtile dist_start_cat=dist_start,n(4)
+
+* gen categorical ndvi at baseline var
+
+xtile ndvi_20124_cat=ndvi_20124,n(4)
+
+sum ndvi_20124, detail
+sum ndvi_20124 if ndvi_20124_cat==1
+sum ndvi_20124 if ndvi_20124_cat==3
 
 
-reghdfe ndvi trt [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+* save "${data}\all_community_panel_gimms", replace
+
+
+reghdfe ndvi trt [pweight = canal_weight], cluster(canal_id qtr) absorb(reu_id)
 
 reghdfe ndvi trt i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+
+reghdfe ndvi trt maxtemp maxcrup peakqtr_id trt#peakqtr_id i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup peakqtr_id trt#peakqtr_id i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+** NDVI at baseline
+reghdfe ndvi trt ndvi_20124 meantemp maxtemp mintemp meancrup maxcrup mincrup trt#c.ndvi_20124 i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_20124_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+
+
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##dist_canal_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##dist_start_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+reghdfe ndvi trt dist_canal dist_start meantemp maxtemp mintemp meancrup maxcrup mincrup trt#c.dist_start#c.dist_canal i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
+reg ndvi [pweight=canal_weight] if qtr==20122
+
+
+
+
+
+
+
