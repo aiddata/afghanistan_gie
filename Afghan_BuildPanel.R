@@ -10,6 +10,7 @@ library(maptools)
 library(rgdal)
 library(forecast)
 library(tidyr)
+library(SDMTools)
 
 
 #set the working directory to where the files are stored - !CHANGE THIS TO YOUR OWN DIRECTORY!
@@ -608,17 +609,26 @@ maxcrut<-grep("maxcrut",names(af_reshape))
 all_reshape <- c(ndvi,mint, meant, maxt, mincrup, meancrup, maxcrup,mincrut,meancrut,maxcrut)
 af_panel <- reshape(af_reshape, varying=all_reshape, direction="long",idvar="unique",sep="_",timevar="qtr")
 
-write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
-
-write.csv(af_panel,"ProcessedData/af_panel.csv")
+#write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
 
 
 # ----------------
 ## Add Variables to Panel
 # ----------------
 
-#create dec 2012 baseline ndvi measure
-#create temp and precip pre-trends
+## Create weight by canal size
+
+#create weight in af_panel
+canal_cells <- count(af_panel$reu_id, c('af_panel$project_id','af_panel$qtr'))
+canal_cells<-canal_cells[canal_cells$af_panel.qtr=="20061",]
+canal_cells<-canal_cells[,c(1,3)]
+af_panel1<-merge(af_panel, canal_cells, by.x="project_id",by.y="af_panel.project_id")
+af_panel1$canal_weight<-1/af_panel1$freq
+
+## Divide ndvi values by 10,000
+af_panel1$ndvi<-af_panel1$ndvi/10000
+
+af_panel<-af_panel1
 
 ## CREATE TREATMENT VAR
 
@@ -653,7 +663,11 @@ table(af_panel$peakqtr,af_panel$peakqtr_id)
 #manual check
 dec_panel<-af_panel[af_panel$end_year==2016,]
 
+write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
 
+write.dta(af_panel, "ProcessedData/af_panel.dta")
+
+write.csv(af_panel,"ProcessedData/af_panel.csv")
 
 
 #----------------
@@ -701,4 +715,14 @@ st_write(distcanal, "distcanal_geojson",layer="distcanal", driver="GeoJSON")
 #subset to one canal
 subcanal<-afwide[afwide$project_id=="N001",]
 summary(subcanal$distance_to_canal.na)
+
+#subset to cells with less than 300 in 2012
+afwide300<-afwide[afwide$ndvi_20124<=300,]
+afwide500<-afwide[afwide$ndvi_20124<=500,]
+afwide800<-afwide[afwide$ndvi_20124<=800,]
+
+## Weighted Summary Stats
+
+wt.mean(af_panel1$ndvi,(af_panel1$canal_weight))
+wt.med(af_panel1$ndvi,(af_panel1$canal_weight))
 
