@@ -628,6 +628,11 @@ af_panel1$canal_weight<-1/af_panel1$freq
 ## Divide ndvi values by 10,000
 af_panel1$ndvi<-af_panel1$ndvi/10000
 
+## Convert Kelvin Temp to Celcius
+af_panel1$meantemp<-af_panel1$meantemp-273.15
+af_panel1$mintemp<-af_panel1$mintemp-273.15
+af_panel1$maxtemp<-af_panel1$maxtemp-273.15
+
 af_panel<-af_panel1
 
 ## CREATE TREATMENT VAR
@@ -663,31 +668,38 @@ table(af_panel$peakqtr,af_panel$peakqtr_id)
 #manual check
 dec_panel<-af_panel[af_panel$end_year==2016,]
 
-write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
 
 write.dta(af_panel, "ProcessedData/af_panel.dta")
 
 write.csv(af_panel,"ProcessedData/af_panel.csv")
 
 
+
+## -------
+#STATS TABLE, weighted
+#---------
+# for draft report, used code to output summary stats table
+# but then had to manually add (to html or in Excel where formatted) the weighted mean and sd 
+# for below, only the var names and min/max values are correct if want to weight by community size
+# will need to get weighted baseline ndvi values from STATA
+stargazer(af_panel, type="html",
+          keep=c("ndvi","meantemp","maxtemp","mintemp","meancrup","maxcrup","mincrup","dist_canal",
+          "dist_start"),
+          # covariate.labels=c("NDVI","Slope (degree)","Distance to Road (m)","Distance to River (m)","Elevation (m)",
+          #                    "Area (hectares)","Population Density","Mean Temperature","Mean Precipitation",
+          #                    "Min Temperature","Min Precipitation","Max Temperature","Max Precipitation",
+          #                    "NDVI Pre Trend","Predicted NDVI Pre Trend"),
+          omit.summary.stat=c("n"))
+
+## Manually produce weighted mean and sd 
+
+#manually change the var as needed
+wt.mean(af_panel$ndvi,af_panel$canal_weight)
+wt.sd(af_panel$ndvi,af_panel$canal_weight)
+
 #----------------
 #Workspace
 #----------------
-
-
-#reduce ndvi_pre_panel
-prepaneltest <- ndvi_pre_panel[,c("reu_id", "qtr", "ndvi")]
-
-ts<-as.ts(prepaneltest)
-plot.ts(prepaneltest)
-decompose(prepaneltest)
-
-ts$seasonal<-ts$qtr
-ts.stl <- stl(ts,s.window="periodic")  # decompose the TS
-ts.sa <- seasadj(ts.stl)  # de-seasonalize
-plot(prepaneltest, type="l")  # original series
-plot(ts.sa, type="l")  # seasonal adjusted
-seasonplot(ts.sa, 12, col=rainbow(12), year.labels=TRUE, main="Seasonal plot: Airpassengers") # seasonal frequency set as 12 for monthly data.
 
 #summary statistics by group to examine crop growth seasonality
 

@@ -38,9 +38,17 @@ sum dist_canal, detail
 sum dist_canal if dist_canal_cat==1
 sum dist_canal if dist_canal_cat==2
 
-*gen categorical ditance to canal start
+*gen quartile distance to canal start
 
-xtile dist_start_cat=dist_start,n(4)
+xtile dist_start_quart=dist_start,n(4)
+
+* gen categorical distance to canal start
+
+gen dist_start_cat=.
+replace dist_start_cat=1 if (dist_start<750)
+replace dist_start_cat=2 if (dist_start>=750) & (dist_start<1454)
+replace dist_start_cat=3 if (dist_start>=1454) & (dist_start<1768)
+replace dist_start_cat=4 if (dist_start>=1768)
 
 * gen categorical ndvi at baseline var
 
@@ -61,10 +69,13 @@ bys reu_id (qtr): gen ndvi_2012_min=ndvi_base_min[28]
 *Create identifier var if 2012 min value is less than 300
 
 gen ndvi_2012_300=0
-replace ndvi_2012_300=1 if ndvi_2012_min<=300
+replace ndvi_2012_300=1 if ndvi_2012_min<=.003
 
 * save "${data}\all_community_panel_gimms", replace
 
+*****************
+** MAIN MODELS **
+*****************
 
 reghdfe ndvi trt [pweight = canal_weight], cluster(canal_id qtr) absorb(reu_id)
 
