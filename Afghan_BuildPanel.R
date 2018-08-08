@@ -1,5 +1,17 @@
 
+
+###******************************
+## IMPORTANT
+## This dataset had to be rebuilt because of incorrect extracts
+## Filenames of input data remain the same, but they have been moved to a new folder called "inputData_badextract"
+## If trying to recreate the dataset built from this script, look there, and for other files with "badextract" in the title
+## They should all be in the same Box Sync folder
+##*******************************
+
+
 #USAID Afghanistan
+#OFWMP Irrigation Rehabilitation project GIE
+
 
 library(sf)
 library(readxl)
@@ -49,8 +61,7 @@ afcells$reu_id<-as.numeric(afcells$id)
 #extract geometry from full datset and convert geometry dataset to dataframe
 afcells_geo<-st_geometry(afcells)
 st_geometry(afcells)<-NULL
-afcells_geo <- st_set_geometry(as.data.frame(afcells$reu_id),afcells_geo)
-
+afcells_geo <- st_set_geometry(as.data.frame(afcells[,c(4,6)]),afcells_geo)
 
 
 #-----
@@ -694,9 +705,12 @@ stargazer(af_panel, type="html",
 ## Manually produce weighted mean and sd 
 
 #manually change the var as needed
-wt.mean(af_panel$ndvi,af_panel$canal_weight)
-wt.sd(af_panel$ndvi,af_panel$canal_weight)
+wt.mean(af_panel$maxcrup,af_panel$canal_weight)
+wt.sd(af_panel$maxcrup,af_panel$canal_weight)
 
+af_panel2012<-af_panel[af_panel$yearonly==2012,]
+wt.mean(af_panel2012$ndvi,af_panel2012$canal_weight)
+wt.sd(af_panel2012$ndvi,af_panel2012$canal_weight)
 #----------------
 #Workspace
 #----------------
@@ -733,8 +747,19 @@ afwide300<-afwide[afwide$ndvi_20124<=300,]
 afwide500<-afwide[afwide$ndvi_20124<=500,]
 afwide800<-afwide[afwide$ndvi_20124<=800,]
 
-## Weighted Summary Stats
+# trying to figure out cruprecip values
 
-wt.mean(af_panel1$ndvi,(af_panel1$canal_weight))
-wt.med(af_panel1$ndvi,(af_panel1$canal_weight))
+crusub<-cruprecip[200000,]
+summary(crusub$cruprecip_200601.max)
+summary(crusub$cruprecip_200601.min)
+summary(crusub$cruprecip_200601.mean)
+
+crutest<-cruprecip[,c(1,133,265,399)]
+crutest$maxmean <- crutest$cruprecip_200601.max - crutest$cruprecip_200601.mean
+crutest$meanmin <- crutest$cruprecip_200601.mean - crutest$cruprecip_200601.min
+
+crutest_sf<-merge(afcells_geo,crutest)
+st_write(crutest_sf, "crutest_sf",layer="crutest_sf", driver="GeoJSON")
+
+
 
