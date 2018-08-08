@@ -61,6 +61,8 @@ sum ndvi_20124 if ndvi_20124_cat==3
 * Create year average for 2012 baseline year
 egen ndvi_baseline=mean(ndvi) if yearonly==2012, by (reu_id)
 bys reu_id (qtr): gen ndvi_2012=ndvi_baseline[28]
+*make quartile var for 2012 average
+xtile ndvi_2012_cat=ndvi_2012,n(4)
 
 *Create year minimum for 2012 baseline year
 egen ndvi_base_min=min(ndvi) if yearonly==2012, by(reu_id)
@@ -70,6 +72,12 @@ bys reu_id (qtr): gen ndvi_2012_min=ndvi_base_min[28]
 
 gen ndvi_2012_300=0
 replace ndvi_2012_300=1 if ndvi_2012_min<=.003
+
+* Create pre-treatment dummy for all years 2006-2012
+
+gen pre_proj=0
+replace pre_proj=1 if (yearonly<2013)
+
 
 * save "${data}\all_community_panel_gimms", replace
 
@@ -95,11 +103,12 @@ outreg2 using afreg.doc, append drop(i.qtronly i.yearonly) addtext ("Grid cell F
 
 *NDVI at baseline interaction*
 
-reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_20124_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_2012_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 est sto c4
 outreg2 using afreg.doc, append drop(i.qtronly i.yearonly) addtext ("Grid cell FEs", Y, "Season FEs", Y, "Year FEs",Y)
 
 *reghdfe ndvi trt ndvi_20124 meantemp maxtemp mintemp meancrup maxcrup mincrup trt#c.ndvi_20124 i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+*reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_20124_cat i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 *reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt#c.ndvi_2012 i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 
 * Distance to Canal*
@@ -114,7 +123,6 @@ outreg2 using afreg.doc, append drop(i.qtronly i.yearonly) addtext ("Grid cell F
 
 *reghdfe ndvi trt dist_canal dist_start meantemp maxtemp mintemp meancrup maxcrup mincrup trt#c.dist_start#c.dist_canal i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 
-reg ndvi [pweight=canal_weight] if qtr==20122
 
 
 **Robustness Checks with 0.03 threshold**
@@ -158,7 +166,9 @@ reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##dist_sta
 */ if ndvi_2012_300==0 [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 
 
+** Weighted summary stats
 
+reg ndvi [pweight=canal_weight] if pre_proj==1
 
 
 
