@@ -8,18 +8,18 @@ global project "/Users/rbtrichler/Box Sync/afghanistan_gie"
 
 *Import file
 
-import delimited "$project/ProcessedData/af_panel.csv", clear
+*import delimited "$project/ProcessedData/af_panel.csv", clear
 
-destring actual_end_date_iso, force replace
-destring ndvi, force replace
+*destring actual_end_date_iso, force replace
+*destring ndvi, force replace
 
 *Read file
 use "$project/ProcessedData/af_panel.dta", clear
 
 * Generate weights
-sort project_id
-egen canal_cells = count(reu_id), by (project_id qtr) 
-g	canal_weight = 1 / canal_cells
+*sort project_id
+*egen canal_cells = count(reu_id), by (project_id qtr) 
+*g	canal_weight = 1 / canal_cells
 
 *generate baseline ndvi from 2012 q4
 bys reu_id (qtr): gen ndvi_20124=ndvi[28]
@@ -143,7 +143,7 @@ outreg2 using afreg300.doc, append drop(i.qtronly i.yearonly) addtext ("Grid cel
 
 *NDVI at baseline interaction*
 
-reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_20124_cat i.qtronly i.yearonly if ndvi_2012_300==0 [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##ndvi_2012_cat i.qtronly i.yearonly if ndvi_2012_300==0 [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
 est sto c4
 outreg2 using afreg300.doc, append drop(i.qtronly i.yearonly) addtext ("Grid cell FEs", Y, "Season FEs", Y, "Year FEs",Y)
 
@@ -170,8 +170,10 @@ reghdfe ndvi trt meantemp maxtemp mintemp meancrup maxcrup mincrup trt##dist_sta
 
 reg ndvi [pweight=canal_weight] if pre_proj==1
 
+univar ndvi if pre_proj==1
 
-
+*for ndvi_2012_cat quartiles to use in paper
+sum ndvi_2012,d
 
 
 
