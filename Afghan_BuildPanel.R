@@ -37,7 +37,7 @@ setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
 #afcells <- rgdal::readOGR("/Users/rbtrichler/Box Sync/afghanistan_gie/inputData/canal_point_grid.geojson","OGRGeoJSON")
 #read in as a dataframe
 afcells<-"inputData/canal_point_grid.geojson"
-afcells<-st_read(afcells)
+afcells<-st_read("/Users/christianbaehr/Downloads/canal_point_grid.geojson")
 #id field is weird, so assign reu_id that is unique, continuous, and numeric: 1 to 221,985
 # the field "unique" also provides unique and numeric id, but is too long 
 afcells$reu_id<-as.numeric(afcells$id)
@@ -64,8 +64,8 @@ afcells_geo <- st_set_geometry(as.data.frame(afcells[,c(4,6)]),afcells_geo)
 # will help to evaluate growing seasons by province, allow for district-level clustering
 
 #read in shapefile with province information created with manual join in QGIS
-afproj_district <- "ProcessedSpatialData/afproj_district.shp"
-afproj_district <- st_read(afproj_district)
+#afproj_district <- "ProcessedSpatialData/afproj_district.shp"
+afproj_district <- st_read("/Users/christianbaehr/Downloads/ProcessedSpatialData/afproj_district.shp")
 
 # remove geometry
 afproj_district_geo <-st_geometry(afproj_district)
@@ -95,7 +95,8 @@ afcells$district_id<-unclass(afcells$district_id)
 
 #------
 #Read in geoquery extract
-afdist<-read.csv("inputData/merge_canal_point_grid4.csv")
+#afdist<-read.csv("inputData/merge_canal_point_grid4.csv")
+afdist<-read.csv("/Users/christianbaehr/Downloads/merge_canal_point_grid4.csv")
 
 #Drop
 #monthly viirs
@@ -174,53 +175,93 @@ aftemp$maxtemp_20061<-apply(aftemp[max06],1,FUN=max)
 aftemp$meantemp_20061<-apply(aftemp[max06],1,FUN=mean)
 aftemp$mintemp_20061<-apply(aftemp[max06],1,FUN=min)
 
-#Winter vars, 2007-2016
-for (i in 2007:2016)
-{
-  winter<-c((paste0("temp_",i,"00")),(paste0("temp_",i,"01")),(paste0("temp_",i,"02")))
-  aftemp[paste0("maxtemp_",i,"1")]<-apply(aftemp[winter],1,FUN=max)
-  aftemp[paste0("meantemp_",i,"1")]<-apply(aftemp[winter],1,FUN=mean)
-  aftemp[paste0("mintemp_",i,"1")]<-apply(aftemp[winter],1,FUN=min)
-  
+###################
+
+mean.max.min <- function(year.range, season, variable.type) {
+  for(i in year.range) {
+    if(season=="winter") {
+      x <- c((paste0(variable.type,"_",i,"00")),(paste0(variable.type,"_",i,"01")),(paste0(variable.type,"_",i,"02")))
+      y <- "1"
+    } else if (season=="spring") {
+      x <- c((paste0(variable.type,"_",i,"03")),(paste0(variable.type,"_",i,"04")),(paste0(variable.type,"_",i,"05")))
+      y <- "2"
+    } else if (season=="summer") {
+      x <- c((paste0(variable.type,"_",i,"06")),(paste0(variable.type,"_",i,"07")),(paste0(variable.type,"_",i,"08")))
+      y <- "3"
+    } else {
+      x <- c((paste0(variable.type,"_",i,"09")),(paste0(variable.type,"_",i,"10")),(paste0(variable.type,"_",i,"11")))
+      y <- "4"
+    }
+    aftemp[paste0("max",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=max)
+    aftemp[paste0("mean",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=mean)
+    aftemp[paste0("min",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=min)
+  }
+  return(aftemp)
 }
 
+###################
+
+#Winter vars, 2007-2016
+
+aftemp <- mean.max.min(year.range = 2007:2016, season = "winter", variable.type = "temp")
+
+# for (i in 2007:2016)
+# {
+#   winter<-c((paste0("temp_",i,"00")),(paste0("temp_",i,"01")),(paste0("temp_",i,"02")))
+#   aftemp[paste0("maxtemp_",i,"1")]<-apply(aftemp[winter],1,FUN=max)
+#   aftemp[paste0("meantemp_",i,"1")]<-apply(aftemp[winter],1,FUN=mean)
+#   aftemp[paste0("mintemp_",i,"1")]<-apply(aftemp[winter],1,FUN=min)
+# 
+# }
+
 #loop to create spring vars for max temp
-for (i in 2006:2016)
-{
-  spring<-c((paste0("temp_",i,"03")),(paste0("temp_",i,"04")),(paste0("temp_",i,"05")))
-  aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[spring],1,FUN=max)
-  aftemp[paste0("meantemp_",i,"2")]<-apply(aftemp[spring],1,FUN=mean)
-  aftemp[paste0("mintemp_",i,"2")]<-apply(aftemp[spring],1,FUN=min)
-}  
+
+aftemp <- mean.max.min(year.range = 2006:2016, season = "spring", variable.type = "temp")
+
+# for (i in 2006:2016)
+# {
+#   spring<-c((paste0("temp_",i,"03")),(paste0("temp_",i,"04")),(paste0("temp_",i,"05")))
+#   aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[spring],1,FUN=max)
+#   aftemp[paste0("meantemp_",i,"2")]<-apply(aftemp[spring],1,FUN=mean)
+#   aftemp[paste0("mintemp_",i,"2")]<-apply(aftemp[spring],1,FUN=min)
+# }
 
 #loop to create summer vars
-for (i in 2006:2016)
-{
-  summer<-c((paste0("temp_",i,"06")),(paste0("temp_",i,"07")),(paste0("temp_",i,"08")))
-  aftemp[paste0("maxtemp_",i,"3")]<-apply(aftemp[summer],1,FUN=max)
-  aftemp[paste0("meantemp_",i,"3")]<-apply(aftemp[summer],1,FUN=mean)
-  aftemp[paste0("mintemp_",i,"3")]<-apply(aftemp[summer],1,FUN=min)
-  
-} 
+
+aftemp <- mean.max.min(year.range = 2006:2016, season = "summer", variable.type = "temp")
+
+# for (i in 2006:2016)
+# {
+#   summer<-c((paste0("temp_",i,"06")),(paste0("temp_",i,"07")),(paste0("temp_",i,"08")))
+#   aftemp[paste0("maxtemp_",i,"3")]<-apply(aftemp[summer],1,FUN=max)
+#   aftemp[paste0("meantemp_",i,"3")]<-apply(aftemp[summer],1,FUN=mean)
+#   aftemp[paste0("mintemp_",i,"3")]<-apply(aftemp[summer],1,FUN=min)
+#   
+# } 
 
 #loop to create fall vars
-for (i in 2006:2016)
-{
-  fall<-c((paste0("temp_",i,"09")),(paste0("temp_",i,"10")),(paste0("temp_",i,"11")))
-  aftemp[paste0("maxtemp_",i,"4")]<-apply(aftemp[fall],1,FUN=max)
-  aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fall],1,FUN=mean)
-  aftemp[paste0("mintemp_",i,"4")]<-apply(aftemp[fall],1,FUN=min)
-  
-} 
+
+aftemp <- mean.max.min(year.range = 2006:2016, season = "fall", variable.type = "temp")
+
+# for (i in 2006:2016)
+# {
+#   fall<-c((paste0("temp_",i,"09")),(paste0("temp_",i,"10")),(paste0("temp_",i,"11")))
+#   aftemp[paste0("maxtemp_",i,"4")]<-apply(aftemp[fall],1,FUN=max)
+#   aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fall],1,FUN=mean)
+#   aftemp[paste0("mintemp_",i,"4")]<-apply(aftemp[fall],1,FUN=min)
+#   
+# } 
 
 # #CHECK TEMP CREATION
-# aftempsub<-aftemp[c(1:400,170000:171000),]
-# 
-# #check
-# table(aftempsub$temp_200602, aftempsub$maxtemp_20061)
-# table(aftempsub$temp_200705, aftempsub$maxtemp_20072)
-# table(aftempsub$temp_201607, aftempsub$meantemp_20163)
-# table(aftempsub$temp_200611, aftempsub$mintemp_20064)
+aftempsub<-aftemp[c(1:400,170000:171000),]
+
+#check
+table(aftempsub$temp_200602, aftempsub$maxtemp_20061)
+table(aftempsub$temp_200705, aftempsub$maxtemp_20072)
+table(aftempsub$temp_201607, aftempsub$meantemp_20163)
+table(aftempsub$temp_200611, aftempsub$mintemp_20064)
+
+###################
 
 #merge
 aftempslim<-aftemp[,133:265]
