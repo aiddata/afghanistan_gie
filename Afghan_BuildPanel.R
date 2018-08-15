@@ -152,6 +152,44 @@ afwide<-merge(afcells,afdist,by="unique")
 #-------
 #Create seasonal vars from monthly temp and precip vars
 
+###################
+
+stats.function <- function(variable, years, season) {
+  temp <- get(variable)
+  temp.cols <- ncol(temp)
+  if (variable=="aftemp") {
+    var.short <- paste0(gsub("af","",variable,fixed=T),"_")
+    var.long <- paste0(variable, "_")
+  } else if (variable=="crutemp") {
+    var.short <- paste0(gsub("emp","",variable,fixed=T),"_")
+    var.long <- paste0(variable, "_")
+  } else {
+    var.short <- paste0(gsub("recip","",variable,fixed=T),"_")
+    var.long <- paste0(variable, "_")
+  }
+  if(season=="winter") {
+    values <- c("00", "01", "02")
+    x <- "1"
+  } else if(season=="spring") {
+    values <- c("03", "04", "05")
+    x <- "2"
+  } else if(season=="summer") {
+    values <- c("06", "07", "08")
+    x <- "3"
+  } else {
+    values <- c("09", "10", "11")
+    x <- "4"
+  }
+  for(i in years) {
+    temp.season <- c((paste0(var.long,i,values[1])),(paste0(var.long,i,values[2])),(paste0(var.long,i,values[3])))
+    temp[paste0("max",var.short,i,x)] <- apply(temp[temp.season],1,FUN = max)
+    temp[paste0("mean",var.short,i,x)] <- apply(temp[temp.season],1,FUN = mean)
+    temp[paste0("min",var.short,i,x)] <- apply(temp[temp.season],1,FUN = min)
+  }
+  return(temp[,(temp.cols+1):ncol(temp)])
+}
+
+###################
 
 #AFTEMP#
 
@@ -175,36 +213,6 @@ aftemp$maxtemp_20061<-apply(aftemp[max06],1,FUN=max)
 aftemp$meantemp_20061<-apply(aftemp[max06],1,FUN=mean)
 aftemp$mintemp_20061<-apply(aftemp[max06],1,FUN=min)
 
-###################
-
-stats.function <- function(variable="aftemp", years=2007:2016, season="winter") {
-  temp <- get(variable)
-  temp.cols <- ncol(temp)
-  var.short <- gsub("af","",variable,fixed=T)
-  var.short <- paste0(gsub("cru","",var.short,fixed=T),"_")
-  if(season=="winter") {
-    values <- c("00", "01", "02")
-    x <- "1"
-  } else if(season=="spring") {
-    values <- c("03", "04", "05")
-    x <- "2"
-  } else if(season=="summer") {
-    values <- c("06", "07", "08")
-    x <- "3"
-  } else {
-    values <- c("09", "10", "11")
-    x <- "4"
-  }
-  for(i in years) {
-    temp.season <- c((paste0(var.short,i,values[1])),(paste0(var.short,i,values[2])),(paste0(var.short,i,values[3])))
-    temp[paste0("max",var.short,i,x)] <- apply(temp[temp.season],1,FUN = max)
-    temp[paste0("mean",var.short,i,x)] <- apply(temp[temp.season],1,FUN = mean)
-    temp[paste0("min",var.short,i,x)] <- apply(temp[temp.season],1,FUN = min)
-  }
-  return(temp[,(temp.cols+1):ncol(temp)])
-}
-
-###################
 
 #Winter vars, 2007-2016
 
@@ -293,43 +301,55 @@ cruprecip$meancrup_20061<-apply(cruprecip[max06],1,FUN=mean)
 cruprecip$mincrup_20061<-apply(cruprecip[max06],1,FUN=min)
 
 #Winter vars, 2007-2016
-for (i in 2007:2016)
-{
-  winter<-c((paste0("cruprecip_",i,"00")),(paste0("cruprecip_",i,"01")),(paste0("cruprecip_",i,"02")))
-  cruprecip[paste0("maxcrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=max)
-  cruprecip[paste0("meancrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=mean)
-  cruprecip[paste0("mincrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=min)
-  
-}
+
+cruprecip <- cbind(cruprecip, stats.function(variable = "cruprecip", years = 2007:2016, season = "winter"))
+
+# for (i in 2007:2016)
+# {
+#   winter<-c((paste0("cruprecip_",i,"00")),(paste0("cruprecip_",i,"01")),(paste0("cruprecip_",i,"02")))
+#   cruprecip[paste0("maxcrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=max)
+#   cruprecip[paste0("meancrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=mean)
+#   cruprecip[paste0("mincrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=min)
+#   
+# }
 
 #loop to create spring vars for max temp
-for (i in 2006:2016)
-{
-  spring<-c((paste0("cruprecip_",i,"03")),(paste0("cruprecip_",i,"04")),(paste0("cruprecip_",i,"05")))
-  cruprecip[paste0("maxcrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=max)
-  cruprecip[paste0("meancrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=mean)
-  cruprecip[paste0("mincrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=min)
-}  
+
+cruprecip <- cbind(cruprecip, stats.function(variable = "cruprecip", years = 2006:2016, season = "spring"))
+
+# for (i in 2006:2016)
+# {
+#   spring<-c((paste0("cruprecip_",i,"03")),(paste0("cruprecip_",i,"04")),(paste0("cruprecip_",i,"05")))
+#   cruprecip[paste0("maxcrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=max)
+#   cruprecip[paste0("meancrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=mean)
+#   cruprecip[paste0("mincrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=min)
+# }  
 
 #loop to create summer vars
-for (i in 2006:2016)
-{
-  summer<-c((paste0("cruprecip_",i,"06")),(paste0("cruprecip_",i,"07")),(paste0("cruprecip_",i,"08")))
-  cruprecip[paste0("maxcrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=max)
-  cruprecip[paste0("meancrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=mean)
-  cruprecip[paste0("mincrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=min)
-  
-} 
+
+cruprecip <- cbind(cruprecip, stats.function(variable = "cruprecip", years = 2006:2016, season = "summer"))
+
+# for (i in 2006:2016)
+# {
+#   summer<-c((paste0("cruprecip_",i,"06")),(paste0("cruprecip_",i,"07")),(paste0("cruprecip_",i,"08")))
+#   cruprecip[paste0("maxcrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=max)
+#   cruprecip[paste0("meancrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=mean)
+#   cruprecip[paste0("mincrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=min)
+#   
+# } 
 
 #loop to create fall vars
-for (i in 2006:2016)
-{
-  fall<-c((paste0("cruprecip_",i,"09")),(paste0("cruprecip_",i,"10")),(paste0("cruprecip_",i,"11")))
-  cruprecip[paste0("maxcrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=max)
-  cruprecip[paste0("meancrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=mean)
-  cruprecip[paste0("mincrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=min)
-  
-} 
+
+cruprecip <- cbind(cruprecip, stats.function(variable = "cruprecip", years = 2006:2016, season = "fall"))
+
+# for (i in 2006:2016)
+# {
+#   fall<-c((paste0("cruprecip_",i,"09")),(paste0("cruprecip_",i,"10")),(paste0("cruprecip_",i,"11")))
+#   cruprecip[paste0("maxcrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=max)
+#   cruprecip[paste0("meancrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=mean)
+#   cruprecip[paste0("mincrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=min)
+#   
+# } 
 
 # #Check CRU Precip
 # cruprecipsub<-cruprecip[c(1150:1250,210000:211000),]
@@ -366,43 +386,55 @@ crutemp$meancrut_20061<-apply(crutemp[max06],1,FUN=mean)
 crutemp$mincrut_20061<-apply(crutemp[max06],1,FUN=min)
 
 #Winter vars, 2007-2016
-for (i in 2007:2016)
-{
-  winter<-c((paste0("crutemp_",i,"00")),(paste0("crutemp_",i,"01")),(paste0("crutemp_",i,"02")))
-  crutemp[paste0("maxcrut_",i,"1")]<-apply(crutemp[winter],1,FUN=max)
-  crutemp[paste0("meancrut_",i,"1")]<-apply(crutemp[winter],1,FUN=mean)
-  crutemp[paste0("mincrut_",i,"1")]<-apply(crutemp[winter],1,FUN=min)
-  
-}
+
+crutemp <- cbind(crutemp, stats.function(variable = "crutemp", years = 2007:2016, season = "winter"))
+
+# for (i in 2007:2016)
+# {
+#   winter<-c((paste0("crutemp_",i,"00")),(paste0("crutemp_",i,"01")),(paste0("crutemp_",i,"02")))
+#   crutemp[paste0("maxcrut_",i,"1")]<-apply(crutemp[winter],1,FUN=max)
+#   crutemp[paste0("meancrut_",i,"1")]<-apply(crutemp[winter],1,FUN=mean)
+#   crutemp[paste0("mincrut_",i,"1")]<-apply(crutemp[winter],1,FUN=min)
+#   
+# }
 
 #loop to create spring vars for max temp
-for (i in 2006:2016)
-{
-  spring<-c((paste0("crutemp_",i,"03")),(paste0("crutemp_",i,"04")),(paste0("crutemp_",i,"05")))
-  crutemp[paste0("maxcrut_",i,"2")]<-apply(crutemp[spring],1,FUN=max)
-  crutemp[paste0("meancrut_",i,"2")]<-apply(crutemp[spring],1,FUN=mean)
-  crutemp[paste0("mincrut_",i,"2")]<-apply(crutemp[spring],1,FUN=min)
-}  
+
+crutemp <- cbind(crutemp, stats.function(variable = "crutemp", years = 2006:2016, season = "spring"))
+
+# for (i in 2006:2016)
+# {
+#   spring<-c((paste0("crutemp_",i,"03")),(paste0("crutemp_",i,"04")),(paste0("crutemp_",i,"05")))
+#   crutemp[paste0("maxcrut_",i,"2")]<-apply(crutemp[spring],1,FUN=max)
+#   crutemp[paste0("meancrut_",i,"2")]<-apply(crutemp[spring],1,FUN=mean)
+#   crutemp[paste0("mincrut_",i,"2")]<-apply(crutemp[spring],1,FUN=min)
+# }  
 
 #loop to create summer vars
-for (i in 2006:2016)
-{
-  summer<-c((paste0("crutemp_",i,"06")),(paste0("crutemp_",i,"07")),(paste0("crutemp_",i,"08")))
-  crutemp[paste0("maxcrut_",i,"3")]<-apply(crutemp[summer],1,FUN=max)
-  crutemp[paste0("meancrut_",i,"3")]<-apply(crutemp[summer],1,FUN=mean)
-  crutemp[paste0("mincrut_",i,"3")]<-apply(crutemp[summer],1,FUN=min)
-  
-} 
+
+crutemp <- cbind(crutemp, stats.function(variable = "crutemp", years = 2006:2016, season = "summer"))
+
+# for (i in 2006:2016)
+# {
+#   summer<-c((paste0("crutemp_",i,"06")),(paste0("crutemp_",i,"07")),(paste0("crutemp_",i,"08")))
+#   crutemp[paste0("maxcrut_",i,"3")]<-apply(crutemp[summer],1,FUN=max)
+#   crutemp[paste0("meancrut_",i,"3")]<-apply(crutemp[summer],1,FUN=mean)
+#   crutemp[paste0("mincrut_",i,"3")]<-apply(crutemp[summer],1,FUN=min)
+#   
+# } 
 
 #loop to create fall vars
-for (i in 2006:2016)
-{
-  fall<-c((paste0("crutemp_",i,"09")),(paste0("crutemp_",i,"10")),(paste0("crutemp_",i,"11")))
-  crutemp[paste0("maxcrut_",i,"4")]<-apply(crutemp[fall],1,FUN=max)
-  crutemp[paste0("meancrut_",i,"4")]<-apply(crutemp[fall],1,FUN=mean)
-  crutemp[paste0("mincrut_",i,"4")]<-apply(crutemp[fall],1,FUN=min)
-  
-} 
+
+crutemp <- cbind(crutemp, stats.function(variable = "crutemp", years = 2006:2016, season = "fall"))
+
+# for (i in 2006:2016)
+# {
+#   fall<-c((paste0("crutemp_",i,"09")),(paste0("crutemp_",i,"10")),(paste0("crutemp_",i,"11")))
+#   crutemp[paste0("maxcrut_",i,"4")]<-apply(crutemp[fall],1,FUN=max)
+#   crutemp[paste0("meancrut_",i,"4")]<-apply(crutemp[fall],1,FUN=mean)
+#   crutemp[paste0("mincrut_",i,"4")]<-apply(crutemp[fall],1,FUN=min)
+#   
+# } 
 
 # #CHECK TEMP CREATION
 # crutempsub<-crutemp[c(7550:8550,180000:180100),]
