@@ -159,7 +159,7 @@ stats.function <- function(variable, years, season) {
   temp.cols <- ncol(temp)
   if (variable=="aftemp") {
     var.short <- paste0(gsub("af","",variable,fixed=T),"_")
-    var.long <- paste0(variable, "_")
+    var.long <- paste0(gsub("af","",variable,fixed=T),"_")
   } else if (variable=="crutemp") {
     var.short <- paste0(gsub("emp","",variable,fixed=T),"_")
     var.long <- paste0(variable, "_")
