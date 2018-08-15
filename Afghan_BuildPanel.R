@@ -20,7 +20,7 @@ library(SDMTools)
 
 # !CHANGE THIS TO YOUR OWN DIRECTORY!
 #set the working directory to where the files are stored 
-setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
+#setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
 
 # --------------
 # Read in Data
@@ -36,7 +36,7 @@ setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
 #use rgdal line to read in as a shapefile
 #afcells <- rgdal::readOGR("/Users/rbtrichler/Box Sync/afghanistan_gie/inputData/canal_point_grid.geojson","OGRGeoJSON")
 #read in as a dataframe
-afcells<-"inputData/canal_point_grid.geojson"
+#afcells<-"inputData/canal_point_grid.geojson"
 afcells<-st_read("/Users/christianbaehr/Downloads/canal_point_grid.geojson")
 #id field is weird, so assign reu_id that is unique, continuous, and numeric: 1 to 221,985
 # the field "unique" also provides unique and numeric id, but is too long 
@@ -177,33 +177,38 @@ aftemp$mintemp_20061<-apply(aftemp[max06],1,FUN=min)
 
 ###################
 
-mean.max.min <- function(year.range, season, variable.type) {
-  for(i in year.range) {
-    if(season=="winter") {
-      x <- c((paste0(variable.type,"_",i,"00")),(paste0(variable.type,"_",i,"01")),(paste0(variable.type,"_",i,"02")))
-      y <- "1"
-    } else if (season=="spring") {
-      x <- c((paste0(variable.type,"_",i,"03")),(paste0(variable.type,"_",i,"04")),(paste0(variable.type,"_",i,"05")))
-      y <- "2"
-    } else if (season=="summer") {
-      x <- c((paste0(variable.type,"_",i,"06")),(paste0(variable.type,"_",i,"07")),(paste0(variable.type,"_",i,"08")))
-      y <- "3"
-    } else {
-      x <- c((paste0(variable.type,"_",i,"09")),(paste0(variable.type,"_",i,"10")),(paste0(variable.type,"_",i,"11")))
-      y <- "4"
-    }
-    aftemp[paste0("max",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=max)
-    aftemp[paste0("mean",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=mean)
-    aftemp[paste0("min",variable.type,"_",i,y)]<-apply(aftemp[x],1,FUN=min)
+stats.function <- function(variable="aftemp", years=2007:2016, season="winter") {
+  temp <- get(variable)
+  temp.cols <- ncol(temp)
+  var.short <- gsub("af","",variable,fixed=T)
+  var.short <- paste0(gsub("cru","",var.short,fixed=T),"_")
+  if(season=="winter") {
+    values <- c("00", "01", "02")
+    x <- "1"
+  } else if(season=="spring") {
+    values <- c("03", "04", "05")
+    x <- "2"
+  } else if(season=="summer") {
+    values <- c("06", "07", "08")
+    x <- "3"
+  } else {
+    values <- c("09", "10", "11")
+    x <- "4"
   }
-  return(aftemp)
+  for(i in years) {
+    temp.season <- c((paste0(var.short,i,values[1])),(paste0(var.short,i,values[2])),(paste0(var.short,i,values[3])))
+    temp[paste0("max",var.short,i,x)] <- apply(temp[temp.season],1,FUN = max)
+    temp[paste0("mean",var.short,i,x)] <- apply(temp[temp.season],1,FUN = mean)
+    temp[paste0("min",var.short,i,x)] <- apply(temp[temp.season],1,FUN = min)
+  }
+  return(temp[,(temp.cols+1):ncol(temp)])
 }
 
 ###################
 
 #Winter vars, 2007-2016
 
-aftemp <- mean.max.min(year.range = 2007:2016, season = "winter", variable.type = "temp")
+aftemp <- cbind(aftemp, stats.function(variable = "aftemp", years = 2007:2016, season = "winter"))
 
 # for (i in 2007:2016)
 # {
@@ -216,7 +221,7 @@ aftemp <- mean.max.min(year.range = 2007:2016, season = "winter", variable.type 
 
 #loop to create spring vars for max temp
 
-aftemp <- mean.max.min(year.range = 2006:2016, season = "spring", variable.type = "temp")
+aftemp <- cbind(aftemp, stats.function(variable = "aftemp", years = 2006:2016, season = "spring"))
 
 # for (i in 2006:2016)
 # {
@@ -228,7 +233,7 @@ aftemp <- mean.max.min(year.range = 2006:2016, season = "spring", variable.type 
 
 #loop to create summer vars
 
-aftemp <- mean.max.min(year.range = 2006:2016, season = "summer", variable.type = "temp")
+aftemp <- cbind(aftemp, stats.function(variable = "aftemp", years = 2006:2016, season = "summer"))
 
 # for (i in 2006:2016)
 # {
@@ -236,12 +241,12 @@ aftemp <- mean.max.min(year.range = 2006:2016, season = "summer", variable.type 
 #   aftemp[paste0("maxtemp_",i,"3")]<-apply(aftemp[summer],1,FUN=max)
 #   aftemp[paste0("meantemp_",i,"3")]<-apply(aftemp[summer],1,FUN=mean)
 #   aftemp[paste0("mintemp_",i,"3")]<-apply(aftemp[summer],1,FUN=min)
-#   
-# } 
+# 
+# }
 
 #loop to create fall vars
 
-aftemp <- mean.max.min(year.range = 2006:2016, season = "fall", variable.type = "temp")
+aftemp <- cbind(aftemp, stats.function(variable = "aftemp", years = 2006:2016, season = "fall"))
 
 # for (i in 2006:2016)
 # {
@@ -249,8 +254,8 @@ aftemp <- mean.max.min(year.range = 2006:2016, season = "fall", variable.type = 
 #   aftemp[paste0("maxtemp_",i,"4")]<-apply(aftemp[fall],1,FUN=max)
 #   aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fall],1,FUN=mean)
 #   aftemp[paste0("mintemp_",i,"4")]<-apply(aftemp[fall],1,FUN=min)
-#   
-# } 
+# 
+# }
 
 # #CHECK TEMP CREATION
 aftempsub<-aftemp[c(1:400,170000:171000),]
@@ -455,7 +460,7 @@ afwide$peakqtr<-2
 afwide$peakqtr[afwide$prov_id==3|afwide$prov_id==11]<-3
 table(afwide$prov_id,afwide$peakqtr)
 
-write.csv (afwide,"ProcessedData/afwide.csv")
+#write.csv (afwide,"ProcessedData/afwide.csv")
 
 # ----------
 ## Build Panel 
@@ -558,9 +563,9 @@ table(af_panel$peakqtr,af_panel$peakqtr_id)
 dec_panel<-af_panel[af_panel$end_year==2016,]
 
 
-write.dta(af_panel, "ProcessedData/af_panel.dta")
+#write.dta(af_panel, "ProcessedData/af_panel.dta")
 
-write.csv(af_panel,"ProcessedData/af_panel.csv")
+#write.csv(af_panel,"ProcessedData/af_panel.csv")
 
 
 
