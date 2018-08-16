@@ -540,6 +540,35 @@ stargazer(af_panel, type="html",
           #                    "NDVI Pre Trend","Predicted NDVI Pre Trend"),
           omit.summary.stat=c("n"))
 
+###################
+
+##alternate option for producing descriptive statistics tables with weighted mean/sd
+
+library(xtable)
+
+#retaining variables of interest
+summary.data <- af_panel[c("ndvi", "meantemp", "maxtemp", "mintemp", "meancrup", "maxcrup", 
+                           "mincrup", "dist_canal", "dist_start")]
+
+#obtaining mean, standard deviation, min, max, and 25th and 75th quantiles
+summary.table <- as.data.frame(do.call(cbind, lapply(summary.data, summary)))
+#obtaining weighted mean and weighted standard deviation for each variable in the data
+#and appending it to the table
+summary.table[c("sd", "wt.mean", "wt.sd"),] <- rbind(apply(summary.data, 2, FUN = sd, na.rm = T),
+                                                     apply(summary.data, 2, FUN = wt.mean, wt = af_panel$canal_weight),
+                                                     apply(summary.data, 2, FUN = wt.sd, wt = af_panel$canal_weight))
+#transposing the data so the variable names are rows and statistics are columns. Also editing statistic names
+summary.statistics <- t(summary.table[c("Mean", "sd", "Min.", "1st Qu.", "3rd Qu.", "Max", "wt.mean", "wt.sd"),])
+colnames(summary.statistics) <- c("Mean", "SD", "Min.", "Pctl(25)", "Pctl(75)", "Max", "Wt. Mean", "Wt. SD")
+
+#exporting an html file containing a table with all summary statistics, including weighted. Need to edit
+#the file path to match your desired destination
+print(xtable(summary.statistics, align = xalign(summary.statistics), digits = 3, 
+             display = xdisplay(summary.statistics)), 
+      type = "html", file="/Users/christianbaehr/Desktop/table.html")
+
+###################
+
 ## Manually produce weighted mean and sd 
 
 #manually change the var as needed
