@@ -21,7 +21,7 @@ library(foreign)
 # !CHANGE THIS TO YOUR OWN DIRECTORY!
 #set the working directory to where the files are stored 
 #setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
-
+setwd("/Users/christianbaehr/Box Sync/afghanistan_gie")
 # --------------
 # Read in Data
 # --------------
@@ -37,7 +37,7 @@ library(foreign)
 #afcells <- rgdal::readOGR("/Users/rbtrichler/Box Sync/afghanistan_gie/inputData/canal_point_grid.geojson","OGRGeoJSON")
 #read in as a dataframe
 #afcells<-"inputData/canal_point_grid.geojson"
-afcells<-st_read("/Users/christianbaehr/Downloads/canal_point_grid.geojson")
+afcells<-st_read("inputData/canal_point_grid.geojson")
 #id field is weird, so assign reu_id that is unique, continuous, and numeric: 1 to 221,985
 # the field "unique" also provides unique and numeric id, but is too long 
 afcells$reu_id<-as.numeric(afcells$id)
@@ -65,7 +65,7 @@ afcells_geo <- st_set_geometry(as.data.frame(afcells[,c(4,6)]),afcells_geo)
 
 #read in shapefile with province information created with manual join in QGIS
 #afproj_district <- "ProcessedSpatialData/afproj_district.shp"
-afproj_district <- st_read("/Users/christianbaehr/Downloads/ProcessedSpatialData/afproj_district.shp")
+afproj_district <- st_read("ProcessedSpatialData/afproj_district.shp")
 
 # remove geometry
 afproj_district_geo <-st_geometry(afproj_district)
@@ -96,7 +96,7 @@ afcells$district_id<-unclass(afcells$district_id)
 #------
 #Read in geoquery extract
 #afdist<-read.csv("inputData/merge_canal_point_grid4.csv")
-afdist<-read.csv("/Users/christianbaehr/Downloads/merge_canal_point_grid4.csv")
+afdist<-read.csv("inputData/merge_canal_point_grid4.csv")
 
 #Drop
 #monthly viirs
@@ -152,28 +152,24 @@ afwide<-merge(afcells,afdist,by="unique")
 #-------
 #Create seasonal vars from monthly temp and precip vars
 
-###################
-
-multi.fun <- function(x) {
-  c(max= max(x), mean = mean(x), min = min(x))
-}
-
-###################
-
-#AFTEMP#
-
 aftemp<-aftemp_pre
 colnames(aftemp) <- gsub("modis_lst_day_monthly.","temp_",colnames(aftemp),fixed=TRUE)
 aftemp <- aftemp[,-grep("2017",colnames(aftemp))]
 aftemp <- aftemp[,-grep("2018",colnames(aftemp))]
 
-#rename december temp values
-# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
+cruprecip<-cruprecip_pre
+colnames(cruprecip) <- gsub("cru_precipitation_monthly.","cruprecip_",colnames(cruprecip),fixed=TRUE)
 
+crutemp<-crutemp_pre
+colnames(crutemp) <- gsub("cru_tmp_monthly.","crutemp_",colnames(crutemp),fixed=TRUE)
+
+#rename december temp and precip values
+# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
 for (i in 2006:2015)
 {
   colnames(aftemp)<-sub(paste0("temp_",i,"12"),(paste0("temp_",i+1,"00")),colnames(aftemp))
-  
+  colnames(cruprecip)<-sub(paste0("cruprecip_",i,"12"),(paste0("cruprecip_",i+1,"00")),colnames(cruprecip))
+  colnames(crutemp)<-sub(paste0("crutemp_",i,"12"),(paste0("crutemp_",i+1,"00")),colnames(crutemp))
 }
 
 #do 2006 winter quarter separately
@@ -182,168 +178,79 @@ aftemp$maxtemp_20061<-apply(aftemp[max06],1,FUN=max)
 aftemp$meantemp_20061<-apply(aftemp[max06],1,FUN=mean)
 aftemp$mintemp_20061<-apply(aftemp[max06],1,FUN=min)
 
-
-#Winter vars, 2007-2016
-
-for(i in 2007:2016){
-  winter<-paste0("temp_",i,c("00","01","02"))
-  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"1")]<-t(apply(aftemp[winter],1,FUN=multi.fun))
-}
-
-# for (i in 2007:2016)
-# {
-#   winter<-c((paste0("temp_",i,"00")),(paste0("temp_",i,"01")),(paste0("temp_",i,"02")))
-#   aftemp[paste0("maxtemp_",i,"1")]<-apply(aftemp[winter],1,FUN=max)
-#   aftemp[paste0("meantemp_",i,"1")]<-apply(aftemp[winter],1,FUN=mean)
-#   aftemp[paste0("mintemp_",i,"1")]<-apply(aftemp[winter],1,FUN=min)
-# 
-# }
-
-#loop to create spring vars for max temp
-
-for(i in 2006:2016){
-  spring<-paste0("temp_",i,c("03","04","05"))
-  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"2")]<-t(apply(aftemp[spring],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   spring<-c((paste0("temp_",i,"03")),(paste0("temp_",i,"04")),(paste0("temp_",i,"05")))
-#   aftemp[paste0("maxtemp_",i,"2")]<-apply(aftemp[spring],1,FUN=max)
-#   aftemp[paste0("meantemp_",i,"2")]<-apply(aftemp[spring],1,FUN=mean)
-#   aftemp[paste0("mintemp_",i,"2")]<-apply(aftemp[spring],1,FUN=min)
-# }
-
-#loop to create summer vars
-
-for(i in 2006:2016){
-  summer<-paste0("temp_",i,c("06","07","08"))
-  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"3")]<-t(apply(aftemp[summer],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   summer<-c((paste0("temp_",i,"06")),(paste0("temp_",i,"07")),(paste0("temp_",i,"08")))
-#   aftemp[paste0("maxtemp_",i,"3")]<-apply(aftemp[summer],1,FUN=max)
-#   aftemp[paste0("meantemp_",i,"3")]<-apply(aftemp[summer],1,FUN=mean)
-#   aftemp[paste0("mintemp_",i,"3")]<-apply(aftemp[summer],1,FUN=min)
-# 
-# }
-
-#loop to create fall vars
-
-for(i in 2006:2016){
-  fall<-paste0("temp_",i,c("09","10","11"))
-  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"4")]<-t(apply(aftemp[fall],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   fall<-c((paste0("temp_",i,"09")),(paste0("temp_",i,"10")),(paste0("temp_",i,"11")))
-#   aftemp[paste0("maxtemp_",i,"4")]<-apply(aftemp[fall],1,FUN=max)
-#   aftemp[paste0("meantemp_",i,"4")]<-apply(aftemp[fall],1,FUN=mean)
-#   aftemp[paste0("mintemp_",i,"4")]<-apply(aftemp[fall],1,FUN=min)
-# 
-# }
-
-# #CHECK TEMP CREATION
-aftempsub<-aftemp[c(1:400,170000:171000),]
-
-#check
-table(aftempsub$temp_200602, aftempsub$maxtemp_20061)
-table(aftempsub$temp_200705, aftempsub$maxtemp_20072)
-table(aftempsub$temp_201607, aftempsub$meantemp_20163)
-table(aftempsub$temp_200611, aftempsub$mintemp_20064)
-
-###################
-
-#merge
-aftempslim<-aftemp[,133:265]
-afwide1<-merge(afwide, aftempslim, by="unique")
-afwide<-afwide1
-
-# CRUPRECIP #
-cruprecip<-cruprecip_pre
-colnames(cruprecip) <- gsub("cru_precipitation_monthly.","cruprecip_",colnames(cruprecip),fixed=TRUE)
-
-#rename december temp values
-# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
-
-for (i in 2006:2015)
-{
-  colnames(cruprecip)<-sub(paste0("cruprecip_",i,"12"),(paste0("cruprecip_",i+1,"00")),colnames(cruprecip))
-  
-}
-
-#do 2006 winter quarter separately
 max06<-c("cruprecip_200601","cruprecip_200602")
 cruprecip$maxcrup_20061<-apply(cruprecip[max06],1,FUN=max)
 cruprecip$meancrup_20061<-apply(cruprecip[max06],1,FUN=mean)
 cruprecip$mincrup_20061<-apply(cruprecip[max06],1,FUN=min)
 
-#Winter vars, 2007-2016
+max06<-c("crutemp_200601","crutemp_200602")
+crutemp$maxcrut_20061<-apply(crutemp[max06],1,FUN=max)
+crutemp$meancrut_20061<-apply(crutemp[max06],1,FUN=mean)
+crutemp$mincrut_20061<-apply(crutemp[max06],1,FUN=min)
 
+#generate function to return mean, min, and max values
+multi.fun <- function(x) {
+  c(max= max(x), mean = mean(x), min = min(x))
+}
+
+#Winter vars, 2007-2016
 for(i in 2007:2016){
+  winter<-paste0("temp_",i,c("00","01","02"))
+  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"1")]<-t(apply(aftemp[winter],1,FUN=multi.fun))
+  
   winter<-paste0("cruprecip_",i,c("00","01","02"))
   cruprecip[,paste0(c("maxcrup_","meancrup_","mincrup_"),i,"1")]<-t(apply(cruprecip[winter],1,FUN=multi.fun))
+  
+  winter<-paste0("crutemp_",i,c("00","01","02"))
+  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"1")]<-t(apply(crutemp[winter],1,FUN=multi.fun))
 }
-
-# for (i in 2007:2016)
-# {
-#   winter<-c((paste0("cruprecip_",i,"00")),(paste0("cruprecip_",i,"01")),(paste0("cruprecip_",i,"02")))
-#   cruprecip[paste0("maxcrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=max)
-#   cruprecip[paste0("meancrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=mean)
-#   cruprecip[paste0("mincrup_",i,"1")]<-apply(cruprecip[winter],1,FUN=min)
-# 
-# }
-
-#loop to create spring vars for max temp
-
+#loop to create spring vars
 for(i in 2006:2016){
+  spring<-paste0("temp_",i,c("03","04","05"))
+  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"2")]<-t(apply(aftemp[spring],1,FUN=multi.fun))
+  
   spring<-paste0("cruprecip_",i,c("03","04","05"))
   cruprecip[,paste0(c("maxcrup_","meancrup_","mincrup_"),i,"2")]<-t(apply(cruprecip[spring],1,FUN=multi.fun))
+  
+  spring<-paste0("crutemp_",i,c("03","04","05"))
+  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"2")]<-t(apply(crutemp[spring],1,FUN=multi.fun))
 }
-
-# for (i in 2006:2016)
-# {
-#   spring<-c((paste0("cruprecip_",i,"03")),(paste0("cruprecip_",i,"04")),(paste0("cruprecip_",i,"05")))
-#   cruprecip[paste0("maxcrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=max)
-#   cruprecip[paste0("meancrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=mean)
-#   cruprecip[paste0("mincrup_",i,"2")]<-apply(cruprecip[spring],1,FUN=min)
-# }
-
 #loop to create summer vars
-
 for(i in 2006:2016){
+  summer<-paste0("temp_",i,c("06","07","08"))
+  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"3")]<-t(apply(aftemp[summer],1,FUN=multi.fun))
+  
   summer<-paste0("cruprecip_",i,c("06","07","08"))
   cruprecip[,paste0(c("maxcrup_","meancrup_","mincrup_"),i,"3")]<-t(apply(cruprecip[summer],1,FUN=multi.fun))
+  
+  summer<-paste0("crutemp_",i,c("06","07","08"))
+  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"3")]<-t(apply(crutemp[summer],1,FUN=multi.fun))
 }
-
-# for (i in 2006:2016)
-# {
-#   summer<-c((paste0("cruprecip_",i,"06")),(paste0("cruprecip_",i,"07")),(paste0("cruprecip_",i,"08")))
-#   cruprecip[paste0("maxcrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=max)
-#   cruprecip[paste0("meancrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=mean)
-#   cruprecip[paste0("mincrup_",i,"3")]<-apply(cruprecip[summer],1,FUN=min)
-# 
-# }
-
 #loop to create fall vars
-
 for(i in 2006:2016){
+  fall<-paste0("temp_",i,c("09","10","11"))
+  aftemp[,paste0(c("maxtemp_","meantemp_","mintemp_"),i,"4")]<-t(apply(aftemp[fall],1,FUN=multi.fun))
+  
   fall<-paste0("cruprecip_",i,c("09","10","11"))
   cruprecip[,paste0(c("maxcrup_","meancrup_","mincrup_"),i,"4")]<-t(apply(cruprecip[fall],1,FUN=multi.fun))
+  
+  fall<-paste0("crutemp_",i,c("09","10","11"))
+  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"4")]<-t(apply(crutemp[fall],1,FUN=multi.fun))
 }
 
+# #CHECK TEMP CREATION
+# aftempsub<-aftemp[c(1:400,170000:171000),]
 
-# for (i in 2006:2016)
-# {
-#   fall<-c((paste0("cruprecip_",i,"09")),(paste0("cruprecip_",i,"10")),(paste0("cruprecip_",i,"11")))
-#   cruprecip[paste0("maxcrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=max)
-#   cruprecip[paste0("meancrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=mean)
-#   cruprecip[paste0("mincrup_",i,"4")]<-apply(cruprecip[fall],1,FUN=min)
-# 
-# }
+#check
+# table(aftempsub$temp_200602, aftempsub$maxtemp_20061)
+# table(aftempsub$temp_200705, aftempsub$maxtemp_20072)
+# table(aftempsub$temp_201607, aftempsub$meantemp_20163)
+# table(aftempsub$temp_200611, aftempsub$mintemp_20064)
+
+#merge
+aftempslim<-aftemp[,133:265]
+afwide1<-merge(afwide, aftempslim, by="unique")
+afwide<-afwide1
 
 # #Check CRU Precip
 # cruprecipsub<-cruprecip[c(1150:1250,210000:211000),]
@@ -356,93 +263,10 @@ for(i in 2006:2016){
 # MERGE cruprecip into afwide
 #cut down cruprecip to relevant variables
 crupslim <- cruprecip[,133:265]
-
 afwide2<-merge(afwide, crupslim, by="unique")
 afwide<-afwide2
 
-# CRU TEMP #
-crutemp<-crutemp_pre
-colnames(crutemp) <- gsub("cru_tmp_monthly.","crutemp_",colnames(crutemp),fixed=TRUE)
-
-#rename december temp values
-# e.g. temp_201212 becomes temp_200700 to make it easier to create quarterly vars from monthly
-
-for (i in 2006:2015)
-{
-  colnames(crutemp)<-sub(paste0("crutemp_",i,"12"),(paste0("crutemp_",i+1,"00")),colnames(crutemp))
-  
-}
-
-#do 2006 winter quarter separately
-max06<-c("crutemp_200601","crutemp_200602")
-crutemp$maxcrut_20061<-apply(crutemp[max06],1,FUN=max)
-crutemp$meancrut_20061<-apply(crutemp[max06],1,FUN=mean)
-crutemp$mincrut_20061<-apply(crutemp[max06],1,FUN=min)
-
-#Winter vars, 2007-2016
-
-for(i in 2007:2016){
-  winter<-paste0("crutemp_",i,c("00","01","02"))
-  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"1")]<-t(apply(crutemp[winter],1,FUN=multi.fun))
-}
-
-# for (i in 2007:2016)
-# {
-#   winter<-c((paste0("crutemp_",i,"00")),(paste0("crutemp_",i,"01")),(paste0("crutemp_",i,"02")))
-#   crutemp[paste0("maxcrut_",i,"1")]<-apply(crutemp[winter],1,FUN=max)
-#   crutemp[paste0("meancrut_",i,"1")]<-apply(crutemp[winter],1,FUN=mean)
-#   crutemp[paste0("mincrut_",i,"1")]<-apply(crutemp[winter],1,FUN=min)
-# 
-# }
-
-#loop to create spring vars for max temp
-
-for(i in 2006:2016){
-  spring<-paste0("crutemp_",i,c("03","04","05"))
-  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"2")]<-t(apply(crutemp[spring],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   spring<-c((paste0("crutemp_",i,"03")),(paste0("crutemp_",i,"04")),(paste0("crutemp_",i,"05")))
-#   crutemp[paste0("maxcrut_",i,"2")]<-apply(crutemp[spring],1,FUN=max)
-#   crutemp[paste0("meancrut_",i,"2")]<-apply(crutemp[spring],1,FUN=mean)
-#   crutemp[paste0("mincrut_",i,"2")]<-apply(crutemp[spring],1,FUN=min)
-# }
-
-#loop to create summer vars
-
-for(i in 2006:2016){
-  summer<-paste0("crutemp_",i,c("06","07","08"))
-  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"3")]<-t(apply(crutemp[summer],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   summer<-c((paste0("crutemp_",i,"06")),(paste0("crutemp_",i,"07")),(paste0("crutemp_",i,"08")))
-#   crutemp[paste0("maxcrut_",i,"3")]<-apply(crutemp[summer],1,FUN=max)
-#   crutemp[paste0("meancrut_",i,"3")]<-apply(crutemp[summer],1,FUN=mean)
-#   crutemp[paste0("mincrut_",i,"3")]<-apply(crutemp[summer],1,FUN=min)
-# 
-# }
-
-#loop to create fall vars
-
-for(i in 2006:2016){
-  fall<-paste0("crutemp_",i,c("09","10","11"))
-  crutemp[,paste0(c("maxcrut_","meancrut_","mincrut_"),i,"4")]<-t(apply(crutemp[fall],1,FUN=multi.fun))
-}
-
-# for (i in 2006:2016)
-# {
-#   fall<-c((paste0("crutemp_",i,"09")),(paste0("crutemp_",i,"10")),(paste0("crutemp_",i,"11")))
-#   crutemp[paste0("maxcrut_",i,"4")]<-apply(crutemp[fall],1,FUN=max)
-#   crutemp[paste0("meancrut_",i,"4")]<-apply(crutemp[fall],1,FUN=mean)
-#   crutemp[paste0("mincrut_",i,"4")]<-apply(crutemp[fall],1,FUN=min)
-# 
-# }
-
-# #CHECK TEMP CREATION
+# CHECK TEMP CREATION
 # crutempsub<-crutemp[c(7550:8550,180000:180100),]
 # 
 # #check values
@@ -452,7 +276,6 @@ for(i in 2006:2016){
 
 #merge
 crutslim <- crutemp[,133:265]
-
 afwide3<-merge(afwide, crutslim, by="unique")
 afwide<-afwide3
 
