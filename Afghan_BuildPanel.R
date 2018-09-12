@@ -16,12 +16,13 @@ library(rgdal)
 library(forecast)
 library(tidyr)
 library(SDMTools)
+library(xtable)
 
 
 # !CHANGE THIS TO YOUR OWN DIRECTORY!
 #set the working directory to where the files are stored 
-setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
-
+#setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
+setwd("/Users/christianbaehr/Box Sync/afghanistan_gie")
 # --------------
 # Read in Data
 # --------------
@@ -414,7 +415,7 @@ afwide$peakqtr<-2
 afwide$peakqtr[afwide$prov_id==3|afwide$prov_id==11]<-3
 table(afwide$prov_id,afwide$peakqtr)
 
-write.csv (afwide,"ProcessedData/afwide.csv")
+#write.csv (afwide,"ProcessedData/afwide.csv")
 
 # ----------
 ## Build Panel 
@@ -517,9 +518,9 @@ table(af_panel$peakqtr,af_panel$peakqtr_id)
 dec_panel<-af_panel[af_panel$end_year==2016,]
 
 
-write.dta(af_panel, "ProcessedData/af_panel.dta")
+#write.dta(af_panel, "ProcessedData/af_panel.dta")
 
-write.csv(af_panel,"ProcessedData/af_panel.csv")
+#write.csv(af_panel,"ProcessedData/af_panel.csv")
 
 
 
@@ -544,28 +545,35 @@ stargazer(af_panel, type="html",
 
 ##alternate option for producing descriptive statistics tables with weighted mean/sd
 
-library(xtable)
 
 #retaining variables of interest
-summary.data <- af_panel[c("ndvi", "meantemp", "maxtemp", "mintemp", "meancrup", "maxcrup", 
-                           "mincrup", "dist_canal", "dist_start")]
+summary.data <- af_panel[which(af_panel$ndvi<0.99), 
+                         c("ndvi", "meantemp", "maxtemp", "mintemp", "meancrup", "maxcrup", 
+                           "mincrup", "dist_canal", "dist_start", "canal_weight")]
 
 #obtaining mean, standard deviation, min, max, and 25th and 75th quantiles
 summary.table <- as.data.frame(do.call(cbind, lapply(summary.data, summary)))
 #obtaining weighted mean and weighted standard deviation for each variable in the data
 #and appending it to the table
 summary.table[c("sd", "wt.mean", "wt.sd"),] <- rbind(apply(summary.data, 2, FUN = sd, na.rm = T),
-                                                     apply(summary.data, 2, FUN = wt.mean, wt = af_panel$canal_weight),
-                                                     apply(summary.data, 2, FUN = wt.sd, wt = af_panel$canal_weight))
+                                                     apply(summary.data, 2, FUN = wt.mean, wt = summary.data$canal_weight),
+                                                     apply(summary.data, 2, FUN = wt.sd, wt = summary.data$canal_weight))
 #transposing the data so the variable names are rows and statistics are columns. Also editing statistic names
-summary.statistics <- t(summary.table[c("Mean", "sd", "Min.", "1st Qu.", "3rd Qu.", "Max", "wt.mean", "wt.sd"),])
+summary.statistics <- t(summary.table[c("Mean", "sd", "Min.", "1st Qu.", "3rd Qu.", "Max", "wt.mean", "wt.sd"),])[-10,]
 colnames(summary.statistics) <- c("Mean", "SD", "Min.", "Pctl(25)", "Pctl(75)", "Max", "Wt. Mean", "Wt. SD")
+rownames(summary.statistics) <- c("NDVI", "Mean Temp", "Max Temp", "Min Temp", "Mean Precip", "Max Precip",
+                              "Min Precip", "Dist. to Canal", "Dist. to Canal Start")
+
+# rownames(summary.statistics) <- c("NDVI", "Mean Temp", "Max Temp", "Min Temp", "Mean Precip", "Max Precip",
+#                                   "Min Precip", "Dist. to Canal", "Dist. to Canal Start", "Canal Weight")
 
 #exporting an html file containing a table with all summary statistics, including weighted. Need to edit
 #the file path to match your desired destination
 print(xtable(summary.statistics, align = xalign(summary.statistics), digits = 3, 
              display = xdisplay(summary.statistics)), 
-      type = "html", file="/Users/christianbaehr/Desktop/table.html")
+      type = "html", file="Report/TablesGraphics/summary_stats.html")
+
+
 
 ###################
 
