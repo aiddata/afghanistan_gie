@@ -3,6 +3,7 @@ library(readxl)
 library(readr)
 
 setwd("/Users/careyglenn/Box Sync/afghanistan_gie")
+setwd("/Users/christianbaehr/Box Sync/afghanistan_gie")
 ndvi_pre_panel<-read.csv("ndvi_pre_panel.csv")
 #ndvi_pre<-read.csv("ndvi_pre.csv")
 #names(ndvi_pre)

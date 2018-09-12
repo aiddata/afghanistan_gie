@@ -5,7 +5,7 @@ clear
 *Set local macros
 global project "/Users/careyglenn/Box Sync/afghanistan_gie"
 global project "/Users/rbtrichler/Box Sync/afghanistan_gie"
-
+global project "/Users/christianbaehr/Box Sync/afghanistan_gie"
 *Import file
 
 *import delimited "$project/ProcessedData/af_panel.csv", clear
@@ -14,7 +14,8 @@ global project "/Users/rbtrichler/Box Sync/afghanistan_gie"
 *destring ndvi, force replace
 
 *Read file
-use "$project/ProcessedData/af_panel.dta", clear
+*use "$project/ProcessedData/af_panel.dta", clear
+use "/Users/christianbaehr/Box Sync/afghanistan_gie/ProcessedData/af_panel.dta", clear
 
 * Generate weights
 *sort project_id
@@ -69,14 +70,23 @@ egen ndvi_base_min=min(ndvi) if yearonly==2012, by(reu_id)
 bys reu_id (qtr): gen ndvi_2012_min=ndvi_base_min[28]
 
 *Create identifier var if 2012 min value is less than 300
-
 gen ndvi_2012_300=0
-replace ndvi_2012_300=1 if ndvi_2012_min<=.003
+replace ndvi_2012_300=1 if ndvi_2012_min<=.03
+
+*Create identifier var if 2012 min value is less than 500
+gen ndvi_2012_500=0
+replace ndvi_2012_500=1 if ndvi_2012_min<=.05
+
+*Create identifier var if 2012 min value is less than 700
+gen ndvi_2012_700=0
+replace ndvi_2012_700=1 if ndvi_2012_min<=.07
 
 * Create pre-treatment dummy for all years 2006-2012
 
 gen pre_proj=0
 replace pre_proj=1 if (yearonly<2013)
+
+keep if ndvi <0.99
 
 
 * save "${data}\all_community_panel_gimms", replace
@@ -85,10 +95,13 @@ replace pre_proj=1 if (yearonly<2013)
 ** MAIN MODELS **
 *****************
 
-reghdfe ndvi trt [pweight = canal_weight], cluster(canal_id qtr) absorb(reu_id)
+*reghdfe ndvi trt [pweight = canal_weight], cluster(canal_id qtr) absorb(reu_id)
+reghdfe ndvi trt [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
 
 *No covars*
 reghdfe ndvi trt i.qtronly i.yearonly [pweight = canal_weight], cluster(project_id qtr) absorb(reu_id)
+
 outreg2 using afreg.doc, replace drop(i.qtronly i.yearonly) addtext ("Grid cell FEs", Y, "Season FEs", Y, "Year FEs",Y)
 
 *Add temp and precip covars*

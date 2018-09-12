@@ -370,7 +370,9 @@ summary(af_panel_sub$ndvi)
 # ----------------
 ## Add Variables to Panel
 # ----------------
-
+rm(aftemp, aftemp_pre, aftempslim, crutslim, crutemp, crutemp_pre, cruprecip, cruprecip_pre, crupslim,
+   af_panel_sub, af_reshape, afcells, afcells_geo, afcells1, afdist, afdist_sub, afdist1, afproj_district,
+   afproj_district_geo, afwide, afwide_sub, afwide1, afwide2, afwide3)
 ## Create weight by canal size
 
 #create weight in af_panel
