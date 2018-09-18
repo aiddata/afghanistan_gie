@@ -545,6 +545,7 @@ stargazer(af_panel, type="html",
 
 ##alternate option for producing descriptive statistics tables with weighted mean/sd
 
+af_panel <- read.dta("~/Box Sync/afghanistan_gie/ProcessedData/af_panel.dta")
 
 #retaining variables of interest
 summary.data <- af_panel[which(af_panel$ndvi<0.99), 
@@ -553,16 +554,34 @@ summary.data <- af_panel[which(af_panel$ndvi<0.99),
 
 #obtaining mean, standard deviation, min, max, and 25th and 75th quantiles
 summary.table <- as.data.frame(do.call(cbind, lapply(summary.data, summary)))
+
 #obtaining weighted mean and weighted standard deviation for each variable in the data
 #and appending it to the table
 summary.table[c("sd", "wt.mean", "wt.sd"),] <- rbind(apply(summary.data, 2, FUN = sd, na.rm = T),
                                                      apply(summary.data, 2, FUN = wt.mean, wt = summary.data$canal_weight),
                                                      apply(summary.data, 2, FUN = wt.sd, wt = summary.data$canal_weight))
+
+summary.table$ndvi2012 <- c(summary(af_panel$ndvi[af_panel$yearonly==2012 & af_panel$ndvi<0.99]),
+                            sd(af_panel$ndvi[af_panel$yearonly==2012 & af_panel$ndvi<0.99]),
+                            wt.mean(af_panel$ndvi[af_panel$yearonly==2012 & af_panel$ndvi<0.99], 
+                                    af_panel$canal_weight[af_panel$yearonly==2012 & af_panel$ndvi<0.99]),
+                            wt.sd(af_panel$ndvi[af_panel$yearonly==2012 & af_panel$ndvi<0.99], 
+                                  af_panel$canal_weight[af_panel$yearonly==2012 & af_panel$ndvi<0.99]))
+summary.table$ndvi2006_2012 <- c(summary(af_panel$ndvi[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99])[1:6],
+                                  sd(af_panel$ndvi[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99], na.rm = T),
+                                  wt.mean(af_panel$ndvi[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99], 
+                                          af_panel$canal_weight[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99]),
+                                  wt.sd(af_panel$ndvi[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99], 
+                                        af_panel$canal_weight[af_panel$yearonly<=2012 & af_panel$yearonly>=2006 & af_panel$ndvi<0.99]))
+
 #transposing the data so the variable names are rows and statistics are columns. Also editing statistic names
-summary.statistics <- t(summary.table[c("Mean", "sd", "Min.", "1st Qu.", "3rd Qu.", "Max", "wt.mean", "wt.sd"),])[-10,]
-colnames(summary.statistics) <- c("Mean", "SD", "Min.", "Pctl(25)", "Pctl(75)", "Max", "Wt. Mean", "Wt. SD")
-rownames(summary.statistics) <- c("NDVI", "Mean Temp", "Max Temp", "Min Temp", "Mean Precip", "Max Precip",
-                              "Min Precip", "Dist. to Canal", "Dist. to Canal Start")
+summary.statistics <- t(summary.table[c("wt.mean", "wt.sd", "Min.", "Max"),])[-10,]
+summary.statistics <- summary.statistics[c("dist_canal", "dist_start", "ndvi", "ndvi2006_2012", "ndvi2012", "mintemp", "meantemp", "maxtemp",
+                                           "mincrup", "meancrup", "maxcrup"),]
+colnames(summary.statistics) <- c("Mean", "St. Dev.", "Min.", "Max")
+rownames(summary.statistics) <- c("Distance to Canal (m)", "Distance to Canal Start (m)", "NDVI", "NDVI, 2006-2012", "NDVI, 2012", 
+                                  "Min Temperature (C)", "Mean Temperature (C)", "Max Temperature (C)", "Min Precipitation (mm)", 
+                                  "Mean Precipitation (mm)", "Max Precipitation (mm)")
 
 # rownames(summary.statistics) <- c("NDVI", "Mean Temp", "Max Temp", "Min Temp", "Mean Precip", "Max Precip",
 #                                   "Min Precip", "Dist. to Canal", "Dist. to Canal Start", "Canal Weight")
