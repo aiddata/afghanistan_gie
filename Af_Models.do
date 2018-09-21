@@ -77,7 +77,7 @@ replace ndvi_2012_300=1 if ndvi_2012_min<=.003
 
 gen pre_proj=0
 replace pre_proj=1 if (yearonly<2013)
-
+keep if ndvi<0.99
 
 * save "${data}\all_community_panel_gimms", replace
 
