@@ -549,5 +549,26 @@ wt.sd(af_panel$maxcrup,af_panel$canal_weight)
 af_panel2012<-af_panel[af_panel$yearonly==2012,]
 wt.mean(af_panel2012$ndvi,af_panel2012$canal_weight)
 wt.sd(af_panel2012$ndvi,af_panel2012$canal_weight)
+summary(af_panel2012$ndvi)
+
+#af_panelsub for experimenting with summary stats
+af_panelsub<-af_panel[af_panel$project_id=="N007",]
+write.csv(af_panelsub,"ProcessedData/af_panelsub.csv")
+
+#Trying to identify cells where ndvi=1
+panelsub_ndvi<-af_panel[af_panel$ndvi==1,]
+table(panelsub_ndvi$qtr)
+hist(panelsub_ndvi$qtr)
+summary(panelsub_ndvi$ndvi)
+
+af_panelndvi<-af_panel[af_panel$ndvi<0.99,]
+af_panelndvi0612<-af_panelndvi[af_panelndvi$yearonly<2013,]
+summary(af_panelndvi0612$ndvi)
+
+#identifying ndvi levels at various points in time
+af_panel2016<-af_panel[af_panel$yearonly==2016,]
+wt.mean(af_panel2016$ndvi,af_panel2016$canal_weight)
+
+
 
 
