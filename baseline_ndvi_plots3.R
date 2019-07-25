@@ -2,7 +2,7 @@
 library(readxl)
 library(readr)
 
-setwd("/Users/careyglenn/Box Sync/afghanistan_gie")
+setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
 ndvi_pre_panel<-read.csv("ndvi_pre_panel.csv")
 
 ##SCRATCH WORK -- creating samples and graphs with those smaller samples
