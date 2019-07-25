@@ -14,8 +14,8 @@ import fiona
 
 pixel_size = 0.0002695
 
-canal_path = os.path.expanduser(
-    "~/git/afghanistan_gie/canal_data/canal_lines.geojson")
+# canal_path = os.path.expanduser("~/git/afghanistan_gie/canal_data/canal_lines.geojson")
+canal_path = os.path.expanduser("~/git/afghanistan_gie/canal_data/canal_starts.geojson")
 
 with fiona.open(canal_path) as canal_src:
     bounds = canal_src.bounds
@@ -24,7 +24,8 @@ with fiona.open(canal_path) as canal_src:
 rv_array, affine = rasterize(canal_path, pixel_size=pixel_size, bounds=bounds)
 
 
-binary_raster_path = "/sciclone/aiddata10/REU/data/projects/afghanistan_gie/distance_to_canals/binary_canals.tif"
+# binary_raster_path = "/sciclone/aiddata10/REU/projects/afghanistan_gie/distance_to_canals/binary_canals.tif"
+binary_raster_path = "/sciclone/aiddata10/REU/projects/afghanistan_gie/distance_to_canals/binary_starts.tif"
 
 export_raster(rv_array, affine, binary_raster_path)
 
@@ -40,7 +41,8 @@ export_raster(rv_array, affine, binary_raster_path)
 # -----------------------------------------------------------------------------
 
 
-distance_raster_path = "/sciclone/aiddata10/REU/data/projects/afghanistan_gie/distance_to_canals/distance_canals.tif"
+# distance_raster_path = "/sciclone/aiddata10/REU/projects/afghanistan_gie/distance_to_canals/distance_canals.tif"
+distance_raster_path = "/sciclone/aiddata10/REU/projects/afghanistan_gie/distance_to_canals/distance_starts.tif"
 
 def raster_conditional(rarray):
     return (rarray == 1)
