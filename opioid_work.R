@@ -39,6 +39,33 @@ opioid$matchid <- paste(opioid$province, ",", opioid$district)
 
 opioid <- opioid[opioid$district!="" & !duplicated(opioid),]
 
+
+
+sum(apply(opioid[, grepl("x", names(opioid))], 1, function(x) {sum(as.numeric(x)) > 0}), na.rm = T)
+205/416
+sum(apply(opioid[, grepl("x", names(opioid))], 1, function(x) {sum(as.numeric(x) > 0)}), na.rm = T)
+1453/(11*416)
+
+
+# stats <- data.frame(years=2008:2018)
+# stats[c("Min.", "1st Qu.", "Median", "Mean", "3rd Qu.", "Max.")] <- NA
+# for(i in 2008:2018) {
+#   j <- as.character(i)
+#   stats[stats$years==i, names(stats)!="years"] <- as.numeric(summary(as.numeric(opioid[as.numeric(opioid[,paste0("x",j)])>0, paste0("x",j)])))[1:6]
+# }
+# write.csv(stats, file = "/Users/christianbaehr/Desktop/opioid_stats.csv", row.names = F)
+
+# opioid_sub <- opioid[which(apply(opioid[, grepl("x", names(opioid))], 1, function(x) {sum(as.numeric(x)) > 0})),]
+# stats <- data.frame(years=2008:2018)
+# stats[c("Min.", "1st Qu.", "Median", "Mean", "3rd Qu.", "Max.")] <- NA
+# for(i in 2008:2018) {
+#   j <- as.character(i)
+#   stats[stats$years==i, names(stats)!="years"] <- as.numeric(summary(as.numeric(opioid_sub[as.numeric(opioid_sub[,paste0("x",j)])>0, paste0("x",j)])))[1:6]
+# }
+# write.csv(stats, file = "/Users/christianbaehr/Desktop/opioid_stats2.csv", row.names = F)
+
+
+
 ###
 
 panel <- read.dta("ProcessedData/af_panel.dta")
