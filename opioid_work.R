@@ -95,12 +95,13 @@ newdata <- merge(panel, opioid, by="matchid")
 
 newdata <- newdata[, !names(newdata) %in% c("x2017", "x2018", "trt.2006", "trt.2007", "ndvi.2006", "ndvi.2007")]
 
-newdata <- reshape(newdata, varying = list(paste0("ndvi.", 2008:2016), paste0("trt.", 2008:2016), paste0("x", 2008:2016)), direction = "long")
+newdata <- reshape(newdata, varying = list(paste0("ndvi.", 2008:2016), paste0("trt.", 2008:2016), paste0("x", 2008:2016)), direction = "long", timevar = "year")
 
 names(newdata)[names(newdata)=="ndvi.2008"] <- "ndvi"
 names(newdata)[names(newdata)=="trt.2008"] <- "trt"
 names(newdata)[names(newdata)=="x2008"] <- "opiumProduction"
 
+write.csv(newdata, "C:/Users/cbaehr/Box Sync/afghanistan_gie/ProcessedData/district_panel.csv", row.names = F)
 
 newdata$opiumProduction <- as.numeric(newdata$opiumProduction)
 
