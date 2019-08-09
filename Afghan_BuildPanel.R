@@ -20,8 +20,8 @@ library(SDMTools)
 
 # !CHANGE THIS TO YOUR OWN DIRECTORY!
 #set the working directory to where the files are stored 
-setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
-
+#setwd("/Users/rbtrichler/Box Sync/afghanistan_gie")
+setwd("/Users/christianbaehr/Box Sync/afghanistan_gie")
 # --------------
 # Read in Data
 # --------------
@@ -423,6 +423,57 @@ write.csv (afwide,"ProcessedData/afwide.csv")
 #Order variables by name/time to allow reshape to work properly
 af_reshape<-afwide[,order(names(afwide))]
 
+###
+
+opium <- read.csv("inputData/unodc_opiumCultivation.csv", stringsAsFactors = F)
+names(opium) <- c("province", "district", paste0("x", 2008:2018))
+
+opium <- as.data.frame(apply(opium, 2, function(x) {ifelse(x=="-", "0", x)}), stringsAsFactors = F)
+
+for(i in 2008:2018) {
+  col <- paste0("x", i)
+  opium[is.na(sapply(opium[,col], as.numeric)), col] <- "NA"
+  
+}
+
+opium$district[opium$district=="Aybak (Provincial Center)"] <- "Aybak"
+opium$district[opium$district=="Bamyan (Provincial Center)"] <- "Bamyan City"
+opium$district[opium$district=="Chahar Bolak"] <- "Char Bolak"
+opium$district[opium$district=="Darah-i- Noor"] <- "Dara-I-Nur"
+opium$district[opium$district=="DehSabz"] <- "Dih Sabz"
+opium$district[opium$district=="Dehdadi"] <- "Dihdadi"
+opium$district[opium$district=="Dushi"] <- "Doshi"
+opium$district[opium$district=="Hazrat-i-Sultan"] <- "Hazrati Sultan"
+opium$district[opium$district=="Enjil"] <- "Injil"
+opium$district[opium$district=="Estalef"] <- "Istalif"
+opium$district[opium$district=="Khwajah Sabz Poshi Wali"] <- "Khwaja Sabz Posh"
+opium$district[opium$district=="Kuzkunar"] <- "Kuz Kunar"
+opium$district[opium$district=="Narang wa Badil"] <- "Narang Wa Badil"
+opium$district[opium$district=="Noor Gal"] <- "Nurgal"
+opium$district[opium$district=="Pul-i-Khumri (Provincial Center"] <- "Puli Khumri"
+opium$district[opium$district=="Qarghayee"] <- "Qarghayi"
+opium$district[opium$district=="Surkh Rud"] <- "Surkh Rod"
+opium$district[opium$district=="Zendah Jan"] <- "Zinda Jan"
+opium$district[opium$district=="Kahmard *"] <- "Kahmard"
+
+opium[c("x2006", "x2007")] <- NA
+
+for(i in 2006:2016) {
+  opium[paste0("opium_", i, 1:4)] <- opium[paste0("x", i)]
+}
+
+opium$matchid <- paste(opium$province, ",", opium$district)
+
+opium <- opium[opium$district!="" & !duplicated(opium),]
+
+opium <- opium[, !grepl("x20|district|province", names(opium))]
+
+af_reshape$matchid <- paste(af_reshape$prov_name, ",", af_reshape$district_name)
+
+af_reshape <- merge(af_reshape, opium, by="matchid")
+
+###
+
 #Identify variables where values will change yearly in panel dataset
 ndvi<-grep("ndvi_",names(af_reshape))
 mint<-grep("mintemp_",names(af_reshape))
@@ -434,11 +485,13 @@ maxcrup<-grep("maxcrup",names(af_reshape))
 mincrut<-grep("mincrut",names(af_reshape))
 meancrut<-grep("meancrut",names(af_reshape))
 maxcrut<-grep("maxcrut",names(af_reshape))
+opium<-grep("opium",names(af_reshape))
 
-all_reshape <- c(ndvi,mint, meant, maxt, mincrup, meancrup, maxcrup,mincrut,meancrut,maxcrut)
+all_reshape <- c(ndvi,mint, meant, maxt, mincrup, meancrup, maxcrup,mincrut,meancrut,maxcrut, opium)
 af_panel <- reshape(af_reshape, varying=all_reshape, direction="long",idvar="unique",sep="_",timevar="qtr")
 
 #write.csv(af_panel,"/Users/rbtrichler/Desktop/af_panel.csv")
+#write.csv(af_panel,"/Users/christianbaehr/Desktop/af_panel.csv")
 
 #--------------------
 # Check Panel with Input Data
@@ -515,6 +568,7 @@ table(af_panel$peakqtr_id)
 table(af_panel$peakqtr,af_panel$peakqtr_id)
 #manual check
 dec_panel<-af_panel[af_panel$end_year==2016,]
+
 
 
 write.dta(af_panel, "ProcessedData/af_panel.dta")
